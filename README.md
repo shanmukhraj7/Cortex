@@ -39,6 +39,95 @@ cortex/
 
 ---
 
+## Project Structure
+```
+cortex/
+├── api-gateway/                   Spring Cloud Gateway
+│   ├── src/main/java/com/recall/gateway/
+│   │   ├── GatewayApplication.java
+│   │   ├── config/
+│   │   │   ├── GatewayConfig.java          route definitions
+│   │   │   ├── SecurityConfig.java         JWT validation filter
+│   │   │   └── CorsConfig.java
+│   │   └── filter/
+│   │       ├── JwtAuthFilter.java          validates JWT on every request
+│   │       └── RateLimitFilter.java        Bucket4j + Redis
+│   ├── src/main/resources/application.yml
+│   └── pom.xml
+│
+├── auth-service/                  Spring Boot 3.2
+│   ├── src/main/java/com/recall/auth/
+│   │   ├── AuthApplication.java
+│   │   ├── controller/AuthController.java
+│   │   ├── service/AuthService.java
+│   │   ├── security/JwtService.java
+│   │   ├── entity/User.java
+│   │   ├── repository/UserRepository.java
+│   │   ├── dto/                            LoginRequest, RegisterRequest, TokenResponse
+│   │   └── exception/GlobalExceptionHandler.java
+│   ├── src/main/resources/
+│   │   ├── application.yml
+│   │   └── db/migration/V1__create_users.sql
+│   ├── src/test/...
+│   ├── Dockerfile
+│   └── pom.xml
+│
+├── notes-service/                 Spring Boot 3.2
+│   ├── src/main/java/com/recall/notes/
+│   │   ├── NotesApplication.java
+│   │   ├── controller/NoteController.java
+│   │   ├── service/
+│   │   │   ├── NoteService.java            @Cacheable / @CacheEvict
+│   │   │   └── SearchService.java          calls ml-service
+│   │   ├── client/MlServiceClient.java     RestClient HTTP caller
+│   │   ├── entity/Note.java
+│   │   ├── repository/NoteRepository.java  JPA + native pgvector query
+│   │   ├── dto/                            NoteRequest, NoteResponse, SearchRequest/Response
+│   │   ├── security/JwtContextFilter.java  reads user ID from forwarded JWT header
+│   │   └── exception/GlobalExceptionHandler.java
+│   ├── src/main/resources/
+│   │   ├── application.yml
+│   │   └── db/migration/
+│   │       ├── V1__create_notes.sql
+│   │       └── V2__add_pgvector.sql
+│   ├── src/test/...
+│   ├── Dockerfile
+│   └── pom.xml
+│
+├── ml-service/                    Python FastAPI
+│   ├── app/
+│   │   ├── __init__.py
+│   │   ├── main.py                         FastAPI app + lifespan
+│   │   ├── config.py                       pydantic-settings
+│   │   ├── database.py                     asyncpg pool + pgvector
+│   │   ├── schemas.py                      Pydantic DTOs
+│   │   ├── models/
+│   │   │   ├── __init__.py
+│   │   │   ├── embedder.py                 BAAI/bge-large-en-v1.5 + MPS
+│   │   │   └── reranker.py                 cross-encoder/ms-marco-MiniLM
+│   │   └── routers/
+│   │       ├── __init__.py
+│   │       ├── embed.py                    POST /embed
+│   │       └── search.py                   POST /search
+│   ├── tests/
+│   │   ├── conftest.py
+│   │   ├── test_embed.py
+│   │   └── test_search.py
+│   ├── requirements.txt
+│   ├── Dockerfile
+│   ├── .env.example
+│   └── README.md
+│
+├── frontend/                      React + Vite (update VITE_API_URL only)
+│
+├── docker-compose.yml
+├── docker-compose.prod.yml
+├── .github/
+│   └── workflows/
+│       ├── ci.yml
+│       └── deploy.yml
+└── README.md
+
 ## Tech stack
 
 | Layer | Technology | Why |
@@ -61,6 +150,8 @@ cortex/
 | Containers | Docker, Docker Compose | One-command local dev |
 | Backend deploy | Railway | Auto-deploys from GHCR |
 | Frontend deploy | Vercel | Instant Vite deploys |
+
+```
 
 ---
 
