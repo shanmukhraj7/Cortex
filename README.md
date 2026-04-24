@@ -127,9 +127,11 @@ cortex/
 │       ├── ci.yml
 │       └── deploy.yml
 └── README.md
+```
+---
 
 ## Tech stack
-
+```
 | Layer | Technology | Why |
 |---|---|---|
 | Frontend | React 18, Vite, Tailwind CSS, Zustand | Fast iteration, minimal bundle |
