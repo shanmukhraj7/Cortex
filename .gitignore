@@ -22,7 +22,22 @@ dist/
 .DS_Store
 Thumbs.db
 
+# Java/Maven
+target/
+*.class
+*.jar
+*.war
+*.ear
+*.log
+.mvn/wrapper/*.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
 # ML Service
 model_cache/
 pgvector/
 .pytest_cache/
+
+# Docker
+.docker/
+docker-volumes/
