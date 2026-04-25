@@ -27,7 +27,7 @@ class Reranker:
         self._model.predict([("warm up query", "warm up document")])
         logger.info("Ranker ready")
 
-    def rerannk(
+    def rerank(
         self,
         query: str,
         documents: list[str],
