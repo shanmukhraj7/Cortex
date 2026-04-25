@@ -4,7 +4,7 @@ import asyncio
 import logging
 import asyncpg
 
-from app.schemas import SearchRequest, SearchResponse, SearchResulttItem
+from app.schemas import SearchRequest, SearchResponse, SearchResultItem
 from app.models.embedder import bi_encoder
 from app.models.reranker import reranker
 from app.database import get_pool
@@ -74,7 +74,7 @@ async def semantic_search(
         request.top_k,
     )
     results = [
-        SearchResulttItem(
+        SearchResultItem(
             note_id = note_ids[i],
             similarity_score = bi_scores[i],
             rerank_score = rerank_scores[rank],
@@ -92,7 +92,7 @@ async def semantic_search(
     )
     return SearchResponse(
         results = results,
-        query_time_ms = round(elapsed, 2),
+        query_time_ms = round(elapsed_ms, 2),
         retrieval_count = len(rows)
     )
     

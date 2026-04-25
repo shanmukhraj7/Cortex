@@ -21,3 +21,8 @@ dist/
 # OS
 .DS_Store
 Thumbs.db
+
+# ML Service
+model_cache/
+pgvector/
+.pytest_cache/

@@ -6,7 +6,7 @@ from app.config import get_settings
 
 logger = logging.getLogger(__name__)
 
-_QUERY_INSTRUCTION = "Repeat this sentence for searching relevant passages: "
+_QUERY_INSTRUCTION = "Represent this sentence for searching relevant passages: "
 
 class BiEncoder:
     """ Wraps BAAI/bge-large-en-v1.5 for doc and query embedding and produces a 1024 dimensional L2-normalized vector which is used for cosine similarity and dot product comparision via pgvector  """
@@ -49,7 +49,7 @@ class BiEncoder:
             raise RuntimeError("BiEncoder.load() has not been called") 
         return self._model.encode(
             texts, 
-            batch_size= get_settings.bi_encoder_batch_size,
+            batch_size= get_settings().bi_encoder_batch_size,
             normalize_embeddings=True,
             show_progress_bar=False,
             convert_to_numpy=True,

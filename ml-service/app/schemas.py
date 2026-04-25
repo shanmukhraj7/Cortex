@@ -17,7 +17,7 @@ class SearchRequest(BaseModel):
     user_id: str = Field(..., description="UUID of the authenticated user")
     top_k: int = Field(default=5, ge=1, le=20)
 
-class SearchResulttItem(BaseModel):
+class SearchResultItem(BaseModel):
     note_id: str
     similarity_score: float = Field(description="Cosine similarity from bi-encoder (0–1)")
     rerank_score: float = Field(description="Cross-encoder relevance score")

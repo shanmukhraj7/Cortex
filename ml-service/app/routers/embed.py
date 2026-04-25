@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException
 from app.schemas import EmbedRequest, EmbedResponse
 from app.models.embedder import bi_encoder
-from app.comfig import get_settings
+from app.config import get_settings
 
 router = APIRouter(prefix="/embed", tags=["embedding"])
 
@@ -12,9 +12,9 @@ async def embed_text(request: EmbedRequest) -> EmbedResponse:
         raise HTTPException(status_code=503, detail="Embedding model not ready")
     
     if request.is_query:
-        vector: bi_encoder.embed_query(request.text)
+        vector = bi_encoder.embed_query(request.text)
     else:
-        vector: bi_encoder.embed_document(request.text)
+        vector = bi_encoder.embed_document(request.text)
     
     return EmbedResponse(
         vector = vector.tolist(),

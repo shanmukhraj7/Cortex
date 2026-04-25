@@ -3,11 +3,11 @@ from app.config import get_settings
 import numpy as np
 from sentence_transformers import CrossEncoder
 
-logging = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 class Reranker:
     """"
-    Wraps cross-encoder/ms-macro-MiniLM-L-6-v2 for reranking.
+    Wraps cross-encoder/ms-marco-MiniLM-L-6-v2 for reranking.
 
     The cross-encoder sees the query and the each candiate document concatenated - much more than bi-encoder alone.
     This predicts the accurate one's.
@@ -43,7 +43,7 @@ class Reranker:
         if self._model is None:
             raise RuntimeError("Reranker.load() has not been called")
         
-        pairs = [(queyr, doc) for doc in documents]
+        pairs = [(query, doc) for doc in documents]
         raw_scores: np.ndarray = self._model.predict(
             pairs, 
             show_progress_bar = False,
