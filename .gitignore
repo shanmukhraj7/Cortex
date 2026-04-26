@@ -41,3 +41,6 @@ pgvector/
 # Docker
 .docker/
 docker-volumes/
+
+echo "target/" >> .gitignore
+echo "*.jar" >> .gitignore
