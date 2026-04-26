@@ -1,0 +1,82 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_DB: cortex
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: shannu2612
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d cortex"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  auth-service:
+    build: ./auth-service
+    environment:
+      DATABASE_URL: jdbc:postgresql://postgres:5432/cortex
+      DATABASE_USERNAME: postgres
+      DATABASE_PASSWORD: shannu2612
+      JWT_SECRET: cortex-dev-secret-key-change-me-please-32
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8081:8081"
+
+  notes-service:
+    build: ./notes-service
+    environment:
+      DATABASE_URL: jdbc:postgresql://postgres:5432/cortex
+      DATABASE_USERNAME: postgres
+      DATABASE_PASSWORD: shannu2612
+      ML_SERVICE_URL: http://ml-service:8001
+    depends_on:
+      postgres:
+        condition: service_healthy
+      ml-service:
+        condition: service_healthy
+    ports:
+      - "8082:8082"
+
+  ml-service:
+    build: ./ml-service
+    environment:
+      DATABASE_URL: postgres://postgres:shannu2612@postgres:5432/cortex
+      DEVICE: cpu
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8001:8001"
+    volumes:
+      - ml-model-cache:/app/model_cache
+
+  api-gateway:
+    build: ./api-gateway
+    environment:
+      JWT_SECRET: cortex-dev-secret-key-change-me-please-32
+      AUTH_SERVICE_URL: http://auth-service:8081
+      NOTES_SERVICE_URL: http://notes-service:8082
+    depends_on:
+      - auth-service
+      - notes-service
+    ports:
+      - "8080:8080"
+
+  frontend:
+    build: ./frontend
+    environment:
+      VITE_API_URL: http://localhost:8080
+    depends_on:
+      - api-gateway
+    ports:
+      - "5173:5173"
+
+volumes:
+  postgres-data:
+  ml-model-cache:

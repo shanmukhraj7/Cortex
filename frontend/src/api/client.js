@@ -1,9 +1,9 @@
 import axios from 'axios'
 
-const BASE_URL = import.meta.env.VITE_API_URL || 'https://localhost:8000'
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080'
 
 const apiClient = axios.create({
-    base_url: BASE_URL,
+    baseURL: BASE_URL,
     headers: { 'Content-Type': 'application/json' },
     timeout: 15000
 })
@@ -16,7 +16,7 @@ apiClient.interceptors.request.use(
             try{
                 const { state } = JSON.parse(raw);
                 if(state?.token){
-                    config.headers.Authorization = 'Bearer ${state.token}'
+                    config.headers.Authorization = `Bearer ${state.token}`
                 }
             }
             catch(_) {}

@@ -1,0 +1,6 @@
+/Users/mr-coder/Desktop/Projects/Cortex-Assistant/api-gateway/src/main/java/com/recall/gateway/filter/RateLimitFilter.java
+/Users/mr-coder/Desktop/Projects/Cortex-Assistant/api-gateway/src/main/java/com/recall/gateway/config/GatewayConfig.java
+/Users/mr-coder/Desktop/Projects/Cortex-Assistant/api-gateway/src/main/java/com/recall/gateway/config/SecurityConfig.java
+/Users/mr-coder/Desktop/Projects/Cortex-Assistant/api-gateway/src/main/java/com/recall/gateway/filter/JwtAuthFilter.java
+/Users/mr-coder/Desktop/Projects/Cortex-Assistant/api-gateway/src/main/java/com/recall/gateway/config/CorsConfig.java
+/Users/mr-coder/Desktop/Projects/Cortex-Assistant/api-gateway/src/main/java/com/recall/gateway/GatewayApplication.java

@@ -1,7 +1,6 @@
 import logging
 from app.config import get_settings
 import numpy as np
-from sentence_transformers import CrossEncoder
 
 logger = logging.getLogger(__name__)
 
@@ -14,9 +13,11 @@ class Reranker:
     """
 
     def __init__(self) -> None:
-        self._model: CrossEncoder | None = None
+        self._model = None
     
     def load(self) -> None:
+        from sentence_transformers import CrossEncoder
+
         settings = get_settings()
         logging.info("Loading cross-encoder %s", settings.cross_encoder_model)
         self._model = CrossEncoder(
@@ -64,6 +65,5 @@ class Reranker:
         return self._model is not None
 
 reranker = Reranker()
-
 
 

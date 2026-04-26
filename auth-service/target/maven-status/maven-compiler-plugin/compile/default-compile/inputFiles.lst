@@ -1,0 +1,8 @@
+/Users/mr-coder/Desktop/Projects/Cortex-Assistant/auth-service/src/main/java/com/recall/auth/repository/UserRepository.java
+/Users/mr-coder/Desktop/Projects/Cortex-Assistant/auth-service/src/main/java/com/recall/auth/entity/User.java
+/Users/mr-coder/Desktop/Projects/Cortex-Assistant/auth-service/src/main/java/com/recall/auth/exception/GlobalExceptionHandler.java
+/Users/mr-coder/Desktop/Projects/Cortex-Assistant/auth-service/src/main/java/com/recall/auth/security/JwtService.java
+/Users/mr-coder/Desktop/Projects/Cortex-Assistant/auth-service/src/main/java/com/recall/auth/service/AuthService.java
+/Users/mr-coder/Desktop/Projects/Cortex-Assistant/auth-service/src/main/java/com/recall/auth/AuthApplication.java
+/Users/mr-coder/Desktop/Projects/Cortex-Assistant/auth-service/src/main/java/com/recall/auth/security/SecurityConfig.java
+/Users/mr-coder/Desktop/Projects/Cortex-Assistant/auth-service/src/main/java/com/recall/auth/controller/AuthController.java

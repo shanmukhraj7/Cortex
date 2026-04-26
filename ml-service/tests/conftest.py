@@ -1,7 +1,11 @@
 import pytest
 import numpy as np
+import sys
+from pathlib import Path
 from unittest.mock import MagicMock, patch, PropertyMock
 from httpx import AsyncClient, ASGITransport
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 @pytest.fixture(params=[pytest.param("asyncio", id="asyncio")])
 def anyio_backend():

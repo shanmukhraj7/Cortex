@@ -2,7 +2,6 @@ from fastapi import APIRouter, HTTPException, Depends
 import time
 import asyncio
 import logging
-import asyncpg
 
 from app.schemas import SearchRequest, SearchResponse, SearchResultItem
 from app.models.embedder import bi_encoder
@@ -20,6 +19,7 @@ _VECTOR_SEARCH_SQL = """
         1 - (embedding <=> $1::vector) AS similarity_score
     FROM notes
     WHERE user_id = $2::uuid
+      AND embedding IS NOT NULL
     ORDER BY embedding <=> $1::vector
     LIMIT $3
 """
@@ -28,7 +28,7 @@ _VECTOR_SEARCH_SQL = """
 @router.post("", response_model=SearchResponse, summary="Two-stage semantic search")
 async def semantic_search(
     request: SearchRequest,
-    pool: asyncpg.Pool = Depends(get_pool),
+    pool = Depends(get_pool),
 ) -> SearchResponse:
     """
     Stage 1: Bi-Encoder  + pgvector (fast + approximate):
