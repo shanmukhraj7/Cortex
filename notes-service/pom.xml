@@ -56,6 +56,7 @@
 			<artifactId>pgvector</artifactId>
 			<version>0.1.4</version>
 		</dependency>
+		
 
 		<!-- Cache: Redis + Spring Cache abstraction -->
 		<dependency>
