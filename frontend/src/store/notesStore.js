@@ -32,7 +32,18 @@ const useNotesStore = create((set, get) => ({
   createNote: async (payload) => {
     set({ isSaving: true })
     try {
-      const { data } = await apiClient.post('/notes', payload)
+      const formattedPayload = {
+        ...payload,
+        tags: typeof payload.tags === 'string'
+          ? payload.tags
+              .split(',')
+              .map(tag => tag.trim())
+              .filter(tag => tag.length > 0)
+          : payload.tags
+      }
+
+      const { data } = await apiClient.post('/notes', formattedPayload)
+
       set((s) => ({ notes: [data, ...s.notes], isSaving: false }))
       return { success: true, note: data }
     } catch (err) {
@@ -44,8 +55,23 @@ const useNotesStore = create((set, get) => ({
   updateNote: async (id, payload) => {
     set({ isSaving: true })
     try {
-      const { data } = await apiClient.put(`/notes/${id}`, payload)
-      set((s) => ({ notes: s.notes.map((n) => (n.id === id ? data : n)), isSaving: false }))
+      const formattedPayload = {
+        ...payload,
+        tags: typeof payload.tags === 'string'
+          ? payload.tags
+              .split(',')
+              .map(tag => tag.trim())
+              .filter(tag => tag.length > 0)
+          : payload.tags
+      }
+
+      const { data } = await apiClient.put(`/notes/${id}`, formattedPayload)
+
+      set((s) => ({
+        notes: s.notes.map((n) => (n.id === id ? data : n)),
+        isSaving: false
+      }))
+
       return { success: true, note: data }
     } catch (err) {
       set({ isSaving: false })
