@@ -1,4 +1,4 @@
-package com.cortex.gateway.filter;
+package com.cortex.gateway;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;

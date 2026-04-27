@@ -1,5 +1,6 @@
 package com.cortex.gateway.config;
 
+import com.cortex.gateway.JwtAuthFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
@@ -10,7 +11,7 @@ import org.springframework.security.web.server.SecurityWebFilterChain;
  * Reactive Spring Security configuration for the API Gateway.
  *
  * <p>JWT validation and user-identity forwarding are handled entirely by
- * {@link com.cortex.gateway.filter.JwtAuthFilter} at order {@code -100}.
+ * {@link JwtAuthFilter} at order {@code -100}.
  * Spring Security is configured here to disable its own authentication
  * machinery so the two subsystems don't interfere.
  *

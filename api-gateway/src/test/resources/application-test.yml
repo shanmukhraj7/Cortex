@@ -1,0 +1,12 @@
+# Overrides used only during tests — keeps production application.yml clean.
+spring:
+  data:
+    redis:
+      url: redis://localhost:16379
+
+cortex:
+  jwt:
+    secret: cortex-dev-secret-key-change-me-please-32
+  services:
+    auth-url: http://localhost:9001   # overridden by @DynamicPropertySource
+    notes-url: http://localhost:9002

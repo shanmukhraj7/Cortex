@@ -1,5 +1,6 @@
 package com.cortex.gateway.config;
 
+import com.cortex.gateway.RateLimitFilter;
 import io.lettuce.core.RedisClient;
 import io.lettuce.core.RedisURI;
 import org.springframework.beans.factory.annotation.Value;
@@ -8,7 +9,7 @@ import org.springframework.context.annotation.Configuration;
 
 /**
  * Provides the Lettuce {@link RedisClient} consumed by
- * {@link com.cortex.gateway.filter.RateLimitFilter}.
+ * {@link RateLimitFilter}.
  *
  * <p>Spring Boot auto-configures a {@code ReactiveRedisConnectionFactory}
  * for Spring Data Redis, but Bucket4j's {@code LettuceBasedProxyManager}
