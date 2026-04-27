@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<parent>
 		<groupId>org.springframework.boot</groupId>
@@ -15,16 +15,48 @@
 	<properties>
 		<java.version>21</java.version>
 		<spring-cloud.version>2023.0.1</spring-cloud.version>
+		<bucket4j.version>8.10.1</bucket4j.version>
 	</properties>
 	<dependencies>
+
+		<!-- Spring Cloud Gateway (reactive / WebFlux) -->
 		<dependency>
 			<groupId>org.springframework.cloud</groupId>
 			<artifactId>spring-cloud-starter-gateway</artifactId>
 		</dependency>
+
+		<!-- Actuator — exposes /actuator/health -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-actuator</artifactId>
 		</dependency>
+
+		<!-- Reactive Redis (Lettuce) — used by Spring Data and Bucket4j -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-data-redis-reactive</artifactId>
+		</dependency>
+
+		<!-- Bucket4j core — token-bucket algorithm -->
+		<dependency>
+			<groupId>com.bucket4j</groupId>
+			<artifactId>bucket4j-core</artifactId>
+			<version>${bucket4j.version}</version>
+		</dependency>
+
+		<!-- Bucket4j Redis backend (Lettuce CAS proxy manager) -->
+		<dependency>
+			<groupId>com.bucket4j</groupId>
+			<artifactId>bucket4j-redis</artifactId>
+			<version>${bucket4j.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-security</artifactId>
+		</dependency>
+
+		<!-- JWT validation -->
 		<dependency>
 			<groupId>io.jsonwebtoken</groupId>
 			<artifactId>jjwt-api</artifactId>
@@ -42,6 +74,8 @@
 			<version>0.12.5</version>
 			<scope>runtime</scope>
 		</dependency>
+
+		<!-- Test: Spring Boot + WebTestClient -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-test</artifactId>
@@ -52,6 +86,22 @@
 			<artifactId>reactor-test</artifactId>
 			<scope>test</scope>
 		</dependency>
+
+		<!-- Test: WireMock — stubs upstream auth-service and notes-service -->
+		<dependency>
+			<groupId>org.springframework.cloud</groupId>
+			<artifactId>spring-cloud-contract-wiremock</artifactId>
+			<scope>test</scope>
+		</dependency>
+
+		<!-- Test: Embedded Redis — no external Redis needed in CI -->
+		<dependency>
+			<groupId>com.github.codemonstur</groupId>
+			<artifactId>embedded-redis</artifactId>
+			<version>1.4.3</version>
+			<scope>test</scope>
+		</dependency>
+
 	</dependencies>
 	<dependencyManagement>
 		<dependencies>
