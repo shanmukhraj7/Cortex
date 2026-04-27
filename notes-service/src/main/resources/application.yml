@@ -4,21 +4,115 @@ server:
 spring:
   application:
     name: notes-service
+
+  # ── Database ──────────────────────────────────────────────────────────────
   datasource:
     url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/cortex}
     username: ${DATABASE_USERNAME:postgres}
     password: ${DATABASE_PASSWORD:shannu2612}
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+
   jpa:
     hibernate:
       ddl-auto: none
     open-in-view: false
+    properties:
+      hibernate:
+        jdbc:
+          lob:
+            non_contextual_creation: true
+
+  # ── Flyway ────────────────────────────────────────────────────────────────
   flyway:
     enabled: true
     table: flyway_notes_history
     baseline-on-migrate: true
     baseline-version: 0
+    locations: classpath:db/migration
+
+  # ── Redis ─────────────────────────────────────────────────────────────────
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      # password: ${REDIS_PASSWORD:}   # uncomment when auth is required
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 4
+          min-idle: 1
+          max-wait: 1000ms
+
+  # ── Cache ─────────────────────────────────────────────────────────────────
+  cache:
+    type: redis
+    redis:
+      time-to-live: 600000   # 10 min default (ms); overridden per-cache in RedisConfig
+
+  # ── Jackson ───────────────────────────────────────────────────────────────
   jackson:
     property-naming-strategy: SNAKE_CASE
+    serialization:
+      write-dates-as-timestamps: false
 
+# ── Cortex custom properties ──────────────────────────────────────────────
 cortex:
   ml-service-url: ${ML_SERVICE_URL:http://localhost:8001}
+
+# ── Resilience4j ─────────────────────────────────────────────────────────
+resilience4j:
+  circuitbreaker:
+    instances:
+      ml-embed:
+        sliding-window-type: COUNT_BASED
+        sliding-window-size: 10
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 30s
+        permitted-number-of-calls-in-half-open-state: 2
+        slow-call-duration-threshold: 8s
+        slow-call-rate-threshold: 80
+        register-health-indicator: true
+      ml-search:
+        sliding-window-type: COUNT_BASED
+        sliding-window-size: 10
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 30s
+        permitted-number-of-calls-in-half-open-state: 2
+        slow-call-duration-threshold: 12s
+        slow-call-rate-threshold: 80
+        register-health-indicator: true
+  timelimiter:
+    instances:
+      ml-embed:
+        timeout-duration: 10s
+      ml-search:
+        timeout-duration: 15s
+  retry:
+    instances:
+      ml-embed:
+        max-attempts: 2
+        wait-duration: 500ms
+      ml-search:
+        max-attempts: 2
+        wait-duration: 500ms
+
+# ── Actuator ──────────────────────────────────────────────────────────────
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,circuitbreakers,caches
+  endpoint:
+    health:
+      show-details: when_authorized
+  health:
+    circuitbreakers:
+      enabled: true
+    redis:
+      enabled: true
