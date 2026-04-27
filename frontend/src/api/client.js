@@ -5,36 +5,28 @@ const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080'
 const apiClient = axios.create({
     baseURL: BASE_URL,
     headers: { 'Content-Type': 'application/json' },
-    timeout: 15000
+    timeout: 15000,
 })
 
-// JWT on each every request
-apiClient.interceptors.request.use(
-    (config) => {
-        const raw = localStorage.getItem('auth-storage')
-        if(raw){
-            try{
-                const { state } = JSON.parse(raw);
-                if(state?.token){
-                    config.headers.Authorization = `Bearer ${state.token}`
-                }
-            }
-            catch(_) {}
+apiClient.interceptors.request.use((config) => {
+    try {
+        const raw = localStorage.getItem('cortex-auth')
+        if (raw) {
+            const { state } = JSON.parse(raw)
+            if (state?.token) config.headers.Authorization = `Bearer ${state.token}`
         }
-        return config
-    },
-    (error) => Promise.reject(error),
-)
+    } catch (_) {}
+    return config
+})
 
-// Clear Auth and redirect
 apiClient.interceptors.response.use(
-    (response) => response,
-    (error) => {
-        if(error.response?.status == 401){
-            localStorage.removeItem('auth-storage')
+    (res) => res,
+    (err) => {
+        if (err.response?.status === 401) {
+            localStorage.removeItem('cortex-auth')
             window.location.href = '/login'
         }
-        return Promise.reject(error)
+        return Promise.reject(err)
     },
 )
 

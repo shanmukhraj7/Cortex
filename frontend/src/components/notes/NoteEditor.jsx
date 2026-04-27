@@ -13,11 +13,11 @@ export default function NoteEditor({ isOpen, onClose, note = null }) {
   const { createNote, updateNote, isSaving } = useNotesStore()
   const toast = useToast()
 
-  const [title, setTitle] = useState('')
-  const [content, setContent] = useState('')
+  const [title,    setTitle]    = useState('')
+  const [content,  setContent]  = useState('')
   const [tagInput, setTagInput] = useState('')
-  const [tags, setTags] = useState([])
-  const [errors, setErrors] = useState({})
+  const [tags,     setTags]     = useState([])
+  const [errors,   setErrors]   = useState({})
 
   useEffect(() => {
     if (isOpen) {
@@ -31,87 +31,99 @@ export default function NoteEditor({ isOpen, onClose, note = null }) {
 
   const validate = () => {
     const e = {}
-    if (!title.trim()) e.title = 'Title is required.'
+    if (!title.trim())   e.title   = 'Title is required.'
     if (!content.trim()) e.content = 'Content is required.'
     setErrors(e)
     return Object.keys(e).length === 0
   }
 
-  const handleTagInputChange = (e) => {
-    const val = e.target.value
-    setTagInput(val)
-    setTags(parseTags(val))
-  }
-
-  const removeTag = (tag) => {
-    const next = tags.filter((t) => t !== tag)
-    setTags(next)
-    setTagInput(tagsToString(next))
+  const handleTagChange = (e) => {
+    setTagInput(e.target.value)
+    setTags(parseTags(e.target.value))
   }
 
   const handleSubmit = async () => {
     if (!validate()) return
     const payload = { title: title.trim(), content: content.trim(), tags }
-
-    const result = isEditing
-      ? await updateNote(note.id, payload)
-      : await createNote(payload)
-
-    if (result.success) {
-      toast.success(isEditing ? 'Note updated!' : 'Note created!')
+    const res = isEditing ? await updateNote(note.id, payload) : await createNote(payload)
+    if (res.success) {
+      toast.success(isEditing ? 'Note updated.' : 'Note created.')
       onClose()
     } else {
-      toast.error(result.error || 'Something went wrong.')
+      toast.error(res.error || 'Something went wrong.')
     }
   }
 
+  const wordCount = content.trim().split(/\s+/).filter(Boolean).length
+  const charCount = content.length
+
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={isEditing ? 'Edit Note' : 'New Note'} size="md">
-      <div className="p-6 flex flex-col gap-5">
-        <Input
-          label="Title"
-          placeholder="Give your note a title…"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          error={errors.title}
-          autoFocus
-        />
-
-        <Textarea
-          label="Content"
-          placeholder="Write anything — ideas, notes, summaries…"
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          error={errors.content}
-          rows={10}
-        />
-
-        <div className="flex flex-col gap-2">
+      <Modal isOpen={isOpen} onClose={onClose} title={isEditing ? 'Edit Note' : 'New Note'} size="md">
+        <div className="p-6 flex flex-col gap-5">
           <Input
-            label="Tags"
-            placeholder="python, machine-learning, notes"
-            value={tagInput}
-            onChange={handleTagInputChange}
-            hint="Separate tags with commas"
+              label="Title"
+              placeholder="What is this note about?"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              error={errors.title}
+              autoFocus
           />
-          {tags.length > 0 && (
-            <div className="flex flex-wrap gap-1.5">
-              {tags.map((tag) => (
-                <TagBadge key={tag} tag={tag} onRemove={removeTag} />
-              ))}
-            </div>
-          )}
-        </div>
 
-        <div className="flex justify-end gap-3 pt-2 border-t border-surface-200/10">
-          <Button variant="secondary" onClick={onClose} disabled={isSaving}>
-            Cancel
-          </Button>
-          <Button onClick={handleSubmit} isLoading={isSaving}>
-            {isEditing ? 'Save Changes' : 'Create Note'}
-          </Button>
+          <div className="flex flex-col gap-1.5">
+            <Textarea
+                label="Content"
+                placeholder="Write your thoughts, ideas, research…"
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                error={errors.content}
+                rows={12}
+            />
+            {content && (
+                <p className="text-[10px] text-zinc-700 font-mono text-right">
+                  {wordCount} words · {charCount} chars
+                </p>
+            )}
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <Input
+                label="Tags"
+                placeholder="python, machine-learning, research"
+                value={tagInput}
+                onChange={handleTagChange}
+                hint="Separate with commas — used for filtering and context"
+            />
+            {tags.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mt-0.5">
+                  {tags.map((tag) => (
+                      <TagBadge
+                          key={tag}
+                          tag={tag}
+                          onRemove={(t) => {
+                            const next = tags.filter((x) => x !== t)
+                            setTags(next)
+                            setTagInput(tagsToString(next))
+                          }}
+                      />
+                  ))}
+                </div>
+            )}
+          </div>
+
+          <div className="flex justify-between items-center pt-3 border-t border-zinc-800 gap-3">
+            <p className="text-[10px] text-zinc-700 font-mono hidden sm:block">
+              {isEditing ? `Editing: ${note?.id?.slice(0, 8)}…` : 'New note · will be embedded automatically'}
+            </p>
+            <div className="flex gap-2 ml-auto">
+              <Button variant="secondary" onClick={onClose} disabled={isSaving} size="sm">
+                Cancel
+              </Button>
+              <Button onClick={handleSubmit} isLoading={isSaving} size="sm">
+                {isEditing ? 'Save Changes' : 'Create Note'}
+              </Button>
+            </div>
+          </div>
         </div>
-      </div>
-    </Modal>
+      </Modal>
   )
 }

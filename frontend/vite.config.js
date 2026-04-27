@@ -5,12 +5,11 @@ export default defineConfig({
     plugins: [react()],
     server: {
         port: 5173,
+        host: '0.0.0.0',
         proxy: {
-            '/api': {
-                target: process.env.VITE_API_URL || 'http://localhost:8080',
-                changeOrigin: true,
-                rewrite: path => path.replace(/^\/api/, ''),
-            },
+            '/auth':   { target: process.env.VITE_API_URL || 'http://localhost:8080', changeOrigin: true },
+            '/notes':  { target: process.env.VITE_API_URL || 'http://localhost:8080', changeOrigin: true },
+            '/search': { target: process.env.VITE_API_URL || 'http://localhost:8080', changeOrigin: true },
         },
     },
     build: {
@@ -20,7 +19,7 @@ export default defineConfig({
             output: {
                 manualChunks: {
                     vendor: ['react', 'react-dom', 'react-router-dom'],
-                    store: ['zustand'],
+                    store:  ['zustand'],
                 },
             },
         },
