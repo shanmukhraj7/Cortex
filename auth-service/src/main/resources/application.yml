@@ -8,17 +8,40 @@ spring:
     url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/cortex}
     username: ${DATABASE_USERNAME:postgres}
     password: ${DATABASE_PASSWORD:shannu2612}
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 30000
   jpa:
     hibernate:
       ddl-auto: validate
     open-in-view: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: false
   flyway:
     enabled: true
     table: flyway_auth_history
     baseline-on-migrate: true
     baseline-version: 0
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always
+
 cortex:
   jwt:
     secret: ${JWT_SECRET:cortex-dev-secret-key-change-me-please-32}
     expiration-minutes: ${JWT_EXPIRATION_MINUTES:1440}
+
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html

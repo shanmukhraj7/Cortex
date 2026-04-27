@@ -1,0 +1,13 @@
+spring:
+  flyway:
+    table: flyway_auth_history
+    baseline-on-migrate: true
+    baseline-version: 0
+  jpa:
+    hibernate:
+      ddl-auto: validate
+
+cortex:
+  jwt:
+    secret: cortex-dev-secret-key-change-me-please-32
+    expiration-minutes: 60
