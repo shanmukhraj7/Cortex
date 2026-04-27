@@ -18,13 +18,19 @@ export function truncate(text, max = 120) {
   return text.length <= max ? text : text.slice(0, max).trimEnd() + '…'
 }
 
-export function parseTags(str) {
-  if (!str) return []
-  return str.split(',').map((t) => t.trim().toLowerCase()).filter(Boolean)
+export const parseTags = (input) => {
+  if (!input || typeof input !== 'string') return []
+
+  return input
+    .split(',')
+    .map(tag => tag.trim())
+    .filter(tag => tag.length > 0)
 }
 
-export function tagsToString(tags) {
-  return Array.isArray(tags) ? tags.join(', ') : ''
+
+export const tagsToString = (tags) => {
+  if (!Array.isArray(tags)) return ''
+  return tags.join(', ')
 }
 
 export function debounce(fn, delay = 300) {
