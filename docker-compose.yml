@@ -6,7 +6,7 @@ services:
     environment:
       POSTGRES_DB: cortex
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: changeme
+      POSTGRES_PASSWORD: shannu2612
     ports:
       - "5432:5432"
     volumes:
@@ -36,7 +36,7 @@ services:
     environment:
       DATABASE_URL: jdbc:postgresql://postgres:5432/cortex
       DATABASE_USERNAME: postgres
-      DATABASE_PASSWORD: changeme
+      DATABASE_PASSWORD: shannu2612
       JWT_SECRET: cortex-dev-secret-key-change-me-please-32
       JWT_EXPIRATION_MINUTES: 1440
     depends_on:
@@ -54,7 +54,7 @@ services:
   ml-service:
     build: ./ml-service
     environment:
-      DATABASE_URL: postgres://postgres:changeme@postgres:5432/cortex
+      DATABASE_URL: postgres://postgres:shannu2612@postgres:5432/cortex
       DEVICE: cpu
     depends_on:
       postgres:
@@ -75,7 +75,7 @@ services:
     environment:
       DATABASE_URL: jdbc:postgresql://postgres:5432/cortex
       DATABASE_USERNAME: postgres
-      DATABASE_PASSWORD: changeme
+      DATABASE_PASSWORD: shannu2612
       ML_SERVICE_URL: http://ml-service:8001
       REDIS_HOST: redis
       REDIS_PORT: 6379
