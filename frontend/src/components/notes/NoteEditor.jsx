@@ -43,17 +43,25 @@ export default function NoteEditor({ isOpen, onClose, note = null }) {
   }
 
   const handleSubmit = async () => {
+    if (!validate()) return
+
     const payload = {
-      title: title.trim(),
-      content: content.trim(),   
-      tags
+      title:   title.trim(),
+      content: content.trim(),
+      tags:    Array.isArray(tags) ? tags : [],
     }
-    const res = isEditing ? await updateNote(note.id, payload) : await createNote(payload)
+
+    console.log('Submitting note payload:', JSON.stringify(payload))
+
+    const res = isEditing
+      ? await updateNote(note.id, payload)
+      : await createNote(payload)
+
     if (res.success) {
       toast.success(isEditing ? 'Note updated.' : 'Note created.')
       onClose()
     } else {
-      toast.error(res.error || 'Something went wrong.')
+      toast.error(res.error || 'Something went wrong. Check if all services are running.')
     }
   }
 
@@ -61,72 +69,74 @@ export default function NoteEditor({ isOpen, onClose, note = null }) {
   const charCount = content.length
 
   return (
-      <Modal isOpen={isOpen} onClose={onClose} title={isEditing ? 'Edit Note' : 'New Note'} size="md">
-        <div className="p-6 flex flex-col gap-5">
-          <Input
-              label="Title"
-              placeholder="What is this note about?"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              error={errors.title}
-              autoFocus
+    <Modal isOpen={isOpen} onClose={onClose} title={isEditing ? 'Edit Note' : 'New Note'} size="md">
+      <div className="p-6 flex flex-col gap-5">
+        <Input
+          label="Title"
+          placeholder="What is this note about?"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          error={errors.title}
+          autoFocus
+        />
+
+        <div className="flex flex-col gap-1.5">
+          <Textarea
+            label="Content"
+            placeholder="Write your thoughts, ideas, research…"
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            error={errors.content}
+            rows={12}
           />
-
-          <div className="flex flex-col gap-1.5">
-            <Textarea
-                label="Content"
-                placeholder="Write your thoughts, ideas, research…"
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                error={errors.content}
-                rows={12}
-            />
-            {content && (
-                <p className="text-[10px] text-zinc-700 font-mono text-right">
-                  {wordCount} words · {charCount} chars
-                </p>
-            )}
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <Input
-                label="Tags"
-                placeholder="python, machine-learning, research"
-                value={tagInput}
-                onChange={handleTagChange}
-                hint="Separate with commas — used for filtering and context"
-            />
-            {tags.length > 0 && (
-                <div className="flex flex-wrap gap-1.5 mt-0.5">
-                  {tags.map((tag) => (
-                      <TagBadge
-                          key={tag}
-                          tag={tag}
-                          onRemove={(t) => {
-                            const next = tags.filter((x) => x !== t)
-                            setTags(next)
-                            setTagInput(tagsToString(next))
-                          }}
-                      />
-                  ))}
-                </div>
-            )}
-          </div>
-
-          <div className="flex justify-between items-center pt-3 border-t border-zinc-800 gap-3">
-            <p className="text-[10px] text-zinc-700 font-mono hidden sm:block">
-              {isEditing ? `Editing: ${note?.id?.slice(0, 8)}…` : 'New note · will be embedded automatically'}
+          {content && (
+            <p className="text-[10px] text-zinc-700 font-mono text-right">
+              {wordCount} words · {charCount} chars
             </p>
-            <div className="flex gap-2 ml-auto">
-              <Button variant="secondary" onClick={onClose} disabled={isSaving} size="sm">
-                Cancel
-              </Button>
-              <Button onClick={handleSubmit} isLoading={isSaving} size="sm">
-                {isEditing ? 'Save Changes' : 'Create Note'}
-              </Button>
+          )}
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <Input
+            label="Tags"
+            placeholder="python, machine-learning, research"
+            value={tagInput}
+            onChange={handleTagChange}
+            hint="Separate with commas — used for filtering and context"
+          />
+          {tags.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 mt-0.5">
+              {tags.map((tag) => (
+                <TagBadge
+                  key={tag}
+                  tag={tag}
+                  onRemove={(t) => {
+                    const next = tags.filter((x) => x !== t)
+                    setTags(next)
+                    setTagInput(tagsToString(next))
+                  }}
+                />
+              ))}
             </div>
+          )}
+        </div>
+
+        <div className="flex justify-between items-center pt-3 border-t border-zinc-800 gap-3">
+          <p className="text-[10px] text-zinc-700 font-mono hidden sm:block">
+            {isEditing
+              ? `Editing: ${note?.id?.slice(0, 8)}…`
+              : 'New note · will be embedded automatically'}
+          </p>
+          <div className="flex gap-2 ml-auto">
+            <Button variant="secondary" onClick={onClose} disabled={isSaving} size="sm">
+              Cancel
+            </Button>
+            <Button onClick={handleSubmit} isLoading={isSaving} size="sm">
+              {isEditing ? 'Save Changes' : 'Create Note'}
+            </Button>
           </div>
         </div>
-      </Modal>
+      </div>
+    </Modal>
   )
 }

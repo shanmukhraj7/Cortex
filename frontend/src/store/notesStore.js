@@ -24,7 +24,8 @@ const useNotesStore = create((set, get) => ({
         isLoading: false,
         searchResults: null,
       })
-    } catch {
+    } catch (err) {
+      console.error('fetchNotes error:', err.response?.status, err.response?.data)
       set({ isLoading: false })
     }
   },
@@ -32,50 +33,62 @@ const useNotesStore = create((set, get) => ({
   createNote: async (payload) => {
     set({ isSaving: true })
     try {
-      const formattedPayload = {
-        ...payload,
-        tags: typeof payload.tags === 'string'
-          ? payload.tags
-              .split(',')
-              .map(tag => tag.trim())
-              .filter(tag => tag.length > 0)
-          : payload.tags
+      // Ensure tags is always a clean string array
+      const body = {
+        title:   payload.title,
+        content: payload.content,
+        tags:    Array.isArray(payload.tags)
+          ? payload.tags.map((t) => String(t).trim()).filter(Boolean)
+          : [],
       }
 
-      const { data } = await apiClient.post('/notes', formattedPayload)
+      console.log('POST /notes body:', JSON.stringify(body))
 
+      const { data } = await apiClient.post('/notes', body)
       set((s) => ({ notes: [data, ...s.notes], isSaving: false }))
       return { success: true, note: data }
     } catch (err) {
       set({ isSaving: false })
-      return { success: false, error: err.response?.data?.detail || 'Failed to create note.' }
+      console.error('createNote error:', err.response?.status, err.response?.data)
+      const detail = err.response?.data?.detail
+      const msg = typeof detail === 'string'
+        ? detail
+        : Array.isArray(detail)
+          ? detail.map((e) => e.msg).join(', ')
+          : err.message || 'Failed to create note.'
+      return { success: false, error: msg }
     }
   },
 
   updateNote: async (id, payload) => {
     set({ isSaving: true })
     try {
-      const formattedPayload = {
-        ...payload,
-        tags: typeof payload.tags === 'string'
-          ? payload.tags
-              .split(',')
-              .map(tag => tag.trim())
-              .filter(tag => tag.length > 0)
-          : payload.tags
+      const body = {
+        title:   payload.title,
+        content: payload.content,
+        tags:    Array.isArray(payload.tags)
+          ? payload.tags.map((t) => String(t).trim()).filter(Boolean)
+          : [],
       }
 
-      const { data } = await apiClient.put(`/notes/${id}`, formattedPayload)
+      console.log('PUT /notes/' + id + ' body:', JSON.stringify(body))
 
+      const { data } = await apiClient.put(`/notes/${id}`, body)
       set((s) => ({
         notes: s.notes.map((n) => (n.id === id ? data : n)),
-        isSaving: false
+        isSaving: false,
       }))
-
       return { success: true, note: data }
     } catch (err) {
       set({ isSaving: false })
-      return { success: false, error: err.response?.data?.detail || 'Failed to update note.' }
+      console.error('updateNote error:', err.response?.status, err.response?.data)
+      const detail = err.response?.data?.detail
+      const msg = typeof detail === 'string'
+        ? detail
+        : Array.isArray(detail)
+          ? detail.map((e) => e.msg).join(', ')
+          : err.message || 'Failed to update note.'
+      return { success: false, error: msg }
     }
   },
 
@@ -84,18 +97,23 @@ const useNotesStore = create((set, get) => ({
       await apiClient.delete(`/notes/${id}`)
       set((s) => ({ notes: s.notes.filter((n) => n.id !== id) }))
       return { success: true }
-    } catch {
+    } catch (err) {
+      console.error('deleteNote error:', err.response?.status, err.response?.data)
       return { success: false, error: 'Failed to delete note.' }
     }
   },
 
   searchNotes: async (query, topK = 5) => {
-    if (!query?.trim()) { set({ searchResults: null, isSearching: false }); return }
+    if (!query?.trim()) {
+      set({ searchResults: null, isSearching: false })
+      return
+    }
     set({ isSearching: true })
     try {
       const { data } = await apiClient.post('/search', { query, top_k: topK })
       set({ searchResults: data.results ?? [], isSearching: false })
-    } catch {
+    } catch (err) {
+      console.error('searchNotes error:', err.response?.status, err.response?.data)
       set({ searchResults: [], isSearching: false })
     }
   },
