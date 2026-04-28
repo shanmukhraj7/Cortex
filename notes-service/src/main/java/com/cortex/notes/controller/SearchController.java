@@ -8,18 +8,24 @@ import java.util.UUID;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
+@RequestMapping("/search")
 public class SearchController {
+
     private final SearchService searchService;
 
     public SearchController(SearchService searchService) {
         this.searchService = searchService;
     }
 
-    @PostMapping("/search")
-    public SearchResponse search(@RequestHeader("X-User-Id") UUID userId, @Valid @RequestBody SearchRequest request) {
+    @PostMapping({"", "/"})
+    public SearchResponse search(
+            @RequestHeader("X-User-Id") UUID userId,
+            @Valid @RequestBody SearchRequest request
+    ) {
         return searchService.search(userId, request);
     }
 }

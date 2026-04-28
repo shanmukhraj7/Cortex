@@ -8,6 +8,7 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class GatewayConfig {
+
     @Bean
     public RouteLocator routes(
             RouteLocatorBuilder builder,
@@ -15,9 +16,15 @@ public class GatewayConfig {
             @Value("${cortex.services.notes-url}") String notesUrl
     ) {
         return builder.routes()
-                .route("auth", r -> r.path("/auth/**").uri(authUrl))
-                .route("notes", r -> r.path("/notes/**").uri(notesUrl))
-                .route("search", r -> r.path("/search").uri(notesUrl))
+                // Auth routes — public, no JWT required (enforced in JwtAuthFilter)
+                .route("auth-root", r -> r.path("/auth").uri(authUrl))
+                .route("auth-sub",  r -> r.path("/auth/**").uri(authUrl))
+                // Notes routes — JWT required
+                .route("notes-root", r -> r.path("/notes").uri(notesUrl))
+                .route("notes-sub",  r -> r.path("/notes/**").uri(notesUrl))
+                // Search route — JWT required
+                .route("search-root", r -> r.path("/search").uri(notesUrl))
+                .route("search-sub",  r -> r.path("/search/**").uri(notesUrl))
                 .build();
     }
 }

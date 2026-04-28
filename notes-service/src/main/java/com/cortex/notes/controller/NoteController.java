@@ -14,40 +14,53 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
+@RequestMapping("/notes")
 public class NoteController {
+
     private final NoteService noteService;
 
     public NoteController(NoteService noteService) {
         this.noteService = noteService;
     }
 
-    @GetMapping("/notes")
+    /**
+     * GET /notes — paginated list, optional tag filter.
+     * Matches both /notes and /notes/ via Spring's default trailing-slash handling.
+     */
+    @GetMapping({"", "/"})
     public PagedNotesResponse list(
             @RequestHeader("X-User-Id") UUID userId,
-            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "1")  int page,
             @RequestParam(defaultValue = "20") int limit,
-            @RequestParam(required = false) String tag
+            @RequestParam(required = false)    String tag
     ) {
         return noteService.list(userId, page, limit, tag);
     }
 
-    @GetMapping("/notes/{id}")
-    public NoteResponse get(@RequestHeader("X-User-Id") UUID userId, @PathVariable UUID id) {
+    @GetMapping("/{id}")
+    public NoteResponse get(
+            @RequestHeader("X-User-Id") UUID userId,
+            @PathVariable UUID id
+    ) {
         return noteService.get(userId, id);
     }
 
-    @PostMapping("/notes")
+    @PostMapping({"", "/"})
     @ResponseStatus(HttpStatus.CREATED)
-    public NoteResponse create(@RequestHeader("X-User-Id") UUID userId, @Valid @RequestBody NoteRequest request) {
+    public NoteResponse create(
+            @RequestHeader("X-User-Id") UUID userId,
+            @Valid @RequestBody NoteRequest request
+    ) {
         return noteService.create(userId, request);
     }
 
-    @PutMapping("/notes/{id}")
+    @PutMapping("/{id}")
     public NoteResponse update(
             @RequestHeader("X-User-Id") UUID userId,
             @PathVariable UUID id,
@@ -56,9 +69,12 @@ public class NoteController {
         return noteService.update(userId, id, request);
     }
 
-    @DeleteMapping("/notes/{id}")
+    @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void delete(@RequestHeader("X-User-Id") UUID userId, @PathVariable UUID id) {
+    public void delete(
+            @RequestHeader("X-User-Id") UUID userId,
+            @PathVariable UUID id
+    ) {
         noteService.delete(userId, id);
     }
 }

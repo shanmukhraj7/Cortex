@@ -1,7 +1,6 @@
 package com.cortex.gateway;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
-import com.github.tomakehurst.wiremock.client.WireMock;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import org.junit.jupiter.api.AfterAll;
@@ -9,8 +8,6 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.context.annotation.Bean;
 import org.springframework.http.HttpHeaders;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -42,25 +39,33 @@ class GatewayRoutingTest {
 
     @BeforeAll
     static void startInfrastructure() throws Exception {
-        // Embedded Redis on a fixed test port
         embeddedRedis = new RedisServer(16379);
         embeddedRedis.start();
 
-        // WireMock stubs for auth-service and notes-service
         authWireMock = new WireMockServer(wireMockConfig().dynamicPort());
         authWireMock.start();
-        authWireMock.stubFor(post(urlEqualTo("/auth/login"))
-                .willReturn(aResponse().withStatus(200).withBody("{\"accessToken\":\"test\"}")));
+        // Match both /auth/login and /auth/register
+        authWireMock.stubFor(post(urlMatching("/auth/.*"))
+                .willReturn(aResponse().withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"access_token\":\"test\",\"token_type\":\"Bearer\"}")));
 
         notesWireMock = new WireMockServer(wireMockConfig().dynamicPort());
         notesWireMock.start();
-        notesWireMock.stubFor(get(urlEqualTo("/notes/"))
-                .willReturn(aResponse().withStatus(200).withBody("[]")));
+        // Stub both /notes (exact) and /notes/* (sub-paths)
+        notesWireMock.stubFor(get(urlEqualTo("/notes"))
+                .willReturn(aResponse().withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"notes\":[],\"pagination\":{\"page\":1,\"limit\":20,\"total\":0}}")));
+        notesWireMock.stubFor(post(urlEqualTo("/notes"))
+                .willReturn(aResponse().withStatus(201)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"id\":\"00000000-0000-0000-0000-000000000001\",\"title\":\"t\",\"content\":\"c\",\"tags\":[]}")));
     }
 
     @AfterAll
     static void stopInfrastructure() throws Exception {
-        if (authWireMock != null) authWireMock.stop();
+        if (authWireMock  != null) authWireMock.stop();
         if (notesWireMock != null) notesWireMock.stop();
         if (embeddedRedis != null) embeddedRedis.stop();
     }
@@ -68,46 +73,67 @@ class GatewayRoutingTest {
     @DynamicPropertySource
     static void overrideProperties(DynamicPropertyRegistry registry) {
         registry.add("spring.data.redis.url", () -> "redis://localhost:16379");
-        registry.add("cortex.jwt.secret", () -> SECRET);
-        registry.add("cortex.services.auth-url", () -> "http://localhost:" + authWireMock.port());
+        registry.add("cortex.jwt.secret",     () -> SECRET);
+        registry.add("cortex.services.auth-url",  () -> "http://localhost:" + authWireMock.port());
         registry.add("cortex.services.notes-url", () -> "http://localhost:" + notesWireMock.port());
     }
 
-    // ── Tests ─────────────────────────────────────────────────────────────
+    // ── Auth routes ──────────────────────────────────────────────────────────
 
     @Test
-    void authRouteIsPublic_noJwtRequired() {
+    void authRoute_isPublic_noJwtRequired() {
         webTestClient.post().uri("/auth/login")
-                .bodyValue("{\"email\":\"a@b.com\",\"password\":\"pass\"}")
+                .bodyValue("{\"email\":\"a@b.com\",\"password\":\"password1\"}")
                 .header(HttpHeaders.CONTENT_TYPE, "application/json")
                 .exchange()
                 .expectStatus().isOk();
     }
 
+    // ── Notes routes ─────────────────────────────────────────────────────────
+
     @Test
-    void notesRoute_returns401_whenNoJwt() {
-        webTestClient.get().uri("/notes/")
+    void notesRoute_GET_returns401_whenNoJwt() {
+        webTestClient.get().uri("/notes")
                 .exchange()
                 .expectStatus().isUnauthorized();
     }
 
     @Test
-    void notesRoute_returns401_whenJwtIsMalformed() {
-        webTestClient.get().uri("/notes/")
+    void notesRoute_POST_returns401_whenNoJwt() {
+        webTestClient.post().uri("/notes")
+                .bodyValue("{\"title\":\"t\",\"content\":\"c\",\"tags\":[]}")
+                .header(HttpHeaders.CONTENT_TYPE, "application/json")
+                .exchange()
+                .expectStatus().isUnauthorized();
+    }
+
+    @Test
+    void notesRoute_GET_returns401_whenJwtIsMalformed() {
+        webTestClient.get().uri("/notes")
                 .header(HttpHeaders.AUTHORIZATION, "Bearer not.a.jwt")
                 .exchange()
                 .expectStatus().isUnauthorized();
     }
 
     @Test
-    void notesRoute_forwardsRequest_whenJwtIsValid() {
-        String token = buildToken("user-42");
-
-        webTestClient.get().uri("/notes/")
-                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+    void notesRoute_GET_forwardsRequest_whenJwtIsValid() {
+        webTestClient.get().uri("/notes")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + buildToken("user-42"))
                 .exchange()
                 .expectStatus().isOk();
     }
+
+    @Test
+    void notesRoute_POST_forwardsRequest_whenJwtIsValid() {
+        webTestClient.post().uri("/notes")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + buildToken("user-42"))
+                .header(HttpHeaders.CONTENT_TYPE, "application/json")
+                .bodyValue("{\"title\":\"t\",\"content\":\"c\",\"tags\":[]}")
+                .exchange()
+                .expectStatus().isCreated();
+    }
+
+    // ── Actuator ─────────────────────────────────────────────────────────────
 
     @Test
     void actuatorHealth_isPublic() {
@@ -116,7 +142,7 @@ class GatewayRoutingTest {
                 .expectStatus().isOk();
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────────
+    // ── Helpers ───────────────────────────────────────────────────────────────
 
     private String buildToken(String subject) {
         return Jwts.builder()

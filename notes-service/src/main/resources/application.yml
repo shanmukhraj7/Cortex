@@ -5,11 +5,11 @@ spring:
   application:
     name: notes-service
 
-  # ── Database ──────────────────────────────────────────────────────────────
+  # ── Database ────────────────────────────────────────────────────────────────
   datasource:
-    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/cortex}
+    url:      ${DATABASE_URL:jdbc:postgresql://localhost:5432/cortex}
     username: ${DATABASE_USERNAME:postgres}
-    password: ${DATABASE_PASSWORD:shannu2612}
+    password: ${DATABASE_PASSWORD:changeme}
     hikari:
       maximum-pool-size: 10
       minimum-idle: 2
@@ -27,7 +27,7 @@ spring:
           lob:
             non_contextual_creation: true
 
-  # ── Flyway ────────────────────────────────────────────────────────────────
+  # ── Flyway ──────────────────────────────────────────────────────────────────
   flyway:
     enabled: true
     table: flyway_notes_history
@@ -35,12 +35,12 @@ spring:
     baseline-version: 0
     locations: classpath:db/migration
 
-  # ── Redis ─────────────────────────────────────────────────────────────────
+  # ── Redis ───────────────────────────────────────────────────────────────────
   data:
     redis:
-      host: ${REDIS_HOST:localhost}
-      port: ${REDIS_PORT:6379}
-      # password: ${REDIS_PASSWORD:}   # uncomment when auth is required
+      host:     ${REDIS_HOST:localhost}
+      port:     ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}     # empty = no auth (local dev); set in prod
       timeout: 2000ms
       lettuce:
         pool:
@@ -49,23 +49,25 @@ spring:
           min-idle: 1
           max-wait: 1000ms
 
-  # ── Cache ─────────────────────────────────────────────────────────────────
+  # ── Cache ───────────────────────────────────────────────────────────────────
   cache:
     type: redis
     redis:
-      time-to-live: 600000   # 10 min default (ms); overridden per-cache in RedisConfig
+      time-to-live: 600000   # 10 min default (ms); per-cache TTLs set in RedisConfig
 
-  # ── Jackson ───────────────────────────────────────────────────────────────
+  # ── Jackson ─────────────────────────────────────────────────────────────────
+  # Do NOT use SNAKE_CASE strategy globally — it conflicts with the
+  # camelCase field names in NoteResponse records that are also used
+  # by Spring Cache (Redis) serialisation. Use @JsonProperty on DTOs instead.
   jackson:
-    property-naming-strategy: SNAKE_CASE
     serialization:
       write-dates-as-timestamps: false
 
-# ── Cortex custom properties ──────────────────────────────────────────────
+# ── Cortex custom properties ─────────────────────────────────────────────────
 cortex:
   ml-service-url: ${ML_SERVICE_URL:http://localhost:8001}
 
-# ── Resilience4j ─────────────────────────────────────────────────────────
+# ── Resilience4j ─────────────────────────────────────────────────────────────
 resilience4j:
   circuitbreaker:
     instances:
@@ -102,7 +104,7 @@ resilience4j:
         max-attempts: 2
         wait-duration: 500ms
 
-# ── Actuator ──────────────────────────────────────────────────────────────
+# ── Actuator ──────────────────────────────────────────────────────────────────
 management:
   endpoints:
     web:

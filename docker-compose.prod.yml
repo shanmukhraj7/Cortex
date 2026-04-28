@@ -1,14 +1,19 @@
-# docker-compose.prod.yml
 services:
+
   postgres:
     image: pgvector/pgvector:pg16
     environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_DB:       ${POSTGRES_DB}
+      POSTGRES_USER:     ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - postgres-data:/var/lib/postgresql/data
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   redis:
     image: redis:7-alpine
@@ -16,27 +21,23 @@ services:
     volumes:
       - redis-data:/data
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
 
   auth-service:
     image: ghcr.io/${GITHUB_OWNER}/cortex/auth-service:latest
     environment:
-      DATABASE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
-      DATABASE_USERNAME: ${POSTGRES_USER}
-      DATABASE_PASSWORD: ${POSTGRES_PASSWORD}
-      JWT_SECRET: ${JWT_SECRET}
-    depends_on: [postgres]
-    restart: unless-stopped
-
-  notes-service:
-    image: ghcr.io/${GITHUB_OWNER}/cortex/notes-service:latest
-    environment:
-      DATABASE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
-      DATABASE_USERNAME: ${POSTGRES_USER}
-      DATABASE_PASSWORD: ${POSTGRES_PASSWORD}
-      ML_SERVICE_URL: http://ml-service:8001
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-    depends_on: [postgres, redis, ml-service]
+      DATABASE_URL:       jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+      DATABASE_USERNAME:  ${POSTGRES_USER}
+      DATABASE_PASSWORD:  ${POSTGRES_PASSWORD}
+      JWT_SECRET:         ${JWT_SECRET}
+      JWT_EXPIRATION_MINUTES: 1440
+    depends_on:
+      postgres:
+        condition: service_healthy
     restart: unless-stopped
 
   ml-service:
@@ -48,14 +49,37 @@ services:
       - ml-model-cache:/app/model_cache
     restart: unless-stopped
 
+  notes-service:
+    image: ghcr.io/${GITHUB_OWNER}/cortex/notes-service:latest
+    environment:
+      DATABASE_URL:      jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+      DATABASE_USERNAME: ${POSTGRES_USER}
+      DATABASE_PASSWORD: ${POSTGRES_PASSWORD}
+      ML_SERVICE_URL:    http://ml-service:8001
+      REDIS_HOST:        redis
+      REDIS_PORT:        6379
+      REDIS_PASSWORD:    ${REDIS_PASSWORD}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
   api-gateway:
     image: ghcr.io/${GITHUB_OWNER}/cortex/api-gateway:latest
     environment:
-      JWT_SECRET: ${JWT_SECRET}
-      AUTH_SERVICE_URL: http://auth-service:8081
-      NOTES_SERVICE_URL: http://notes-service:8082
-      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
-    depends_on: [auth-service, notes-service]
+      JWT_SECRET:         ${JWT_SECRET}
+      AUTH_SERVICE_URL:   http://auth-service:8081
+      NOTES_SERVICE_URL:  http://notes-service:8082
+      REDIS_URL:          redis://:${REDIS_PASSWORD}@redis:6379
+    depends_on:
+      redis:
+        condition: service_healthy
+      auth-service:
+        condition: service_healthy
+      notes-service:
+        condition: service_healthy
     ports:
       - "8080:8080"
     restart: unless-stopped

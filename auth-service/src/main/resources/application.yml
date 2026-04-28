@@ -5,9 +5,9 @@ spring:
   application:
     name: auth-service
   datasource:
-    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/cortex}
+    url:      ${DATABASE_URL:jdbc:postgresql://localhost:5432/cortex}
     username: ${DATABASE_USERNAME:postgres}
-    password: ${DATABASE_PASSWORD:shannu2612}
+    password: ${DATABASE_PASSWORD:changeme}
     hikari:
       maximum-pool-size: 10
       minimum-idle: 2
@@ -37,7 +37,7 @@ management:
 
 cortex:
   jwt:
-    secret: ${JWT_SECRET:cortex-dev-secret-key-change-me-please-32}
+    secret:             ${JWT_SECRET:cortex-dev-secret-key-change-me-please-32}
     expiration-minutes: ${JWT_EXPIRATION_MINUTES:1440}
 
 springdoc:
