@@ -43,11 +43,10 @@ export default function NoteEditor({ isOpen, onClose, note = null }) {
   }
 
   const handleSubmit = async () => {
-    if (!validate()) return
-    const payload = { 
-      title: title.trim(), 
-      description: content.trim(),   
-      tags 
+    const payload = {
+      title: title.trim(),
+      content: content.trim(),   
+      tags
     }
     const res = isEditing ? await updateNote(note.id, payload) : await createNote(payload)
     if (res.success) {
