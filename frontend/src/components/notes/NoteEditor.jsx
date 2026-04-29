@@ -44,15 +44,11 @@ export default function NoteEditor({ isOpen, onClose, note = null }) {
 
   const handleSubmit = async () => {
     if (!validate()) return
-
     const payload = {
       title:   title.trim(),
       content: content.trim(),
       tags:    Array.isArray(tags) ? tags : [],
     }
-
-    console.log('Submitting note payload:', JSON.stringify(payload))
-
     const res = isEditing
       ? await updateNote(note.id, payload)
       : await createNote(payload)
@@ -61,16 +57,13 @@ export default function NoteEditor({ isOpen, onClose, note = null }) {
       toast.success(isEditing ? 'Note updated.' : 'Note created.')
       onClose()
     } else {
-      toast.error(res.error || 'Something went wrong. Check if all services are running.')
+      toast.error(res.error || 'Something went wrong.')
     }
   }
 
-  const wordCount = content.trim().split(/\s+/).filter(Boolean).length
-  const charCount = content.length
-
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={isEditing ? 'Edit Note' : 'New Note'} size="md">
-      <div className="p-6 flex flex-col gap-5">
+      <div className="p-6 sm:p-8 flex flex-col gap-6">
         <Input
           label="Title"
           placeholder="What is this note about?"
@@ -80,20 +73,15 @@ export default function NoteEditor({ isOpen, onClose, note = null }) {
           autoFocus
         />
 
-        <div className="flex flex-col gap-1.5">
+        <div className="flex flex-col gap-1">
           <Textarea
             label="Content"
-            placeholder="Write your thoughts, ideas, research…"
+            placeholder="Write your thoughts, ideas, research..."
             value={content}
             onChange={(e) => setContent(e.target.value)}
             error={errors.content}
-            rows={12}
+            rows={10}
           />
-          {content && (
-            <p className="text-[10px] text-zinc-700 font-mono text-right">
-              {wordCount} words · {charCount} chars
-            </p>
-          )}
         </div>
 
         <div className="flex flex-col gap-2">
@@ -102,10 +90,10 @@ export default function NoteEditor({ isOpen, onClose, note = null }) {
             placeholder="python, machine-learning, research"
             value={tagInput}
             onChange={handleTagChange}
-            hint="Separate with commas — used for filtering and context"
+            hint="Separate with commas — used for filtering and semantic context"
           />
           {tags.length > 0 && (
-            <div className="flex flex-wrap gap-1.5 mt-0.5">
+            <div className="flex flex-wrap gap-2 mt-2">
               {tags.map((tag) => (
                 <TagBadge
                   key={tag}
@@ -121,17 +109,16 @@ export default function NoteEditor({ isOpen, onClose, note = null }) {
           )}
         </div>
 
-        <div className="flex justify-between items-center pt-3 border-t border-zinc-800 gap-3">
-          <p className="text-[10px] text-zinc-700 font-mono hidden sm:block">
-            {isEditing
-              ? `Editing: ${note?.id?.slice(0, 8)}…`
-              : 'New note · will be embedded automatically'}
-          </p>
-          <div className="flex gap-2 ml-auto">
-            <Button variant="secondary" onClick={onClose} disabled={isSaving} size="sm">
+        <div className="flex justify-between items-center pt-6 mt-2 border-t border-carbon-500/50">
+          <div className="flex gap-3 ml-auto">
+            <Button variant="outline" onClick={onClose} disabled={isSaving}>
               Cancel
             </Button>
-            <Button onClick={handleSubmit} isLoading={isSaving} size="sm">
+            <Button onClick={handleSubmit} isLoading={isSaving} rightIcon={
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <path d="M5 12h14m-7-7l7 7-7 7" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            }>
               {isEditing ? 'Save Changes' : 'Create Note'}
             </Button>
           </div>

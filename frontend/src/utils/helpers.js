@@ -39,10 +39,18 @@ export function debounce(fn, delay = 300) {
 }
 
 export function tagColor(str) {
-  if (!str) return '#fbbf24'
+  if (!str) return '#a78bfa'
   const palette = [
-    '#f59e0b','#10b981','#3b82f6','#8b5cf6','#ec4899',
-    '#06b6d4','#84cc16','#f97316','#6366f1','#14b8a6',
+    '#a78bfa', // violet
+    '#22d3ee', // cyan
+    '#34d399', // emerald
+    '#f472b6', // pink
+    '#fb923c', // orange
+    '#60a5fa', // blue
+    '#facc15', // yellow
+    '#e879f9', // fuchsia
+    '#4ade80', // green
+    '#38bdf8', // sky
   ]
   let hash = 0
   for (let i = 0; i < str.length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash)
@@ -55,4 +63,35 @@ export function extractError(err) {
   if (typeof d === 'string') return d
   if (Array.isArray(d)) return d.map((e) => e.msg).join(', ')
   return err.message || 'An unexpected error occurred.'
+}
+
+/**
+ * Extract a user-friendly error message from an Axios error.
+ * Handles: plain string details, validation arrays, @class-polluted
+ * Redis-serialized responses, and network errors with no response body.
+ */
+export function extractApiError(err, fallback = 'Something went wrong.') {
+  if (!err) return fallback
+
+  // No response at all (network error, CORS, timeout)
+  if (!err.response) {
+    if (err.code === 'ECONNABORTED') return 'Request timed out. Please try again.'
+    if (err.code === 'ERR_NETWORK') return 'Network error — are all services running?'
+    return err.message || fallback
+  }
+
+  const data = err.response?.data
+  if (!data) return fallback
+
+  // Standard { detail: "..." } from our GlobalExceptionHandler
+  const detail = data.detail
+  if (typeof detail === 'string' && detail !== 'An unexpected error occurred.') return detail
+
+  // FastAPI-style validation: { detail: [{ msg: "..." }, ...] }
+  if (Array.isArray(detail)) return detail.map((e) => e.msg || e.message || '').filter(Boolean).join(', ') || fallback
+
+  // Spring validation: { message: "..." }
+  if (typeof data.message === 'string') return data.message
+
+  return fallback
 }

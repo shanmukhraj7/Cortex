@@ -3,14 +3,13 @@ import { Link, useNavigate, useLocation } from 'react-router-dom'
 import useAuthStore from '../store/authStore.js'
 import Button from '../components/ui/Button.jsx'
 import Input from '../components/ui/Input.jsx'
-import CortexLogo from '../components/ui/CortexLogo.jsx'
 import { useToast } from '../components/ui/Toast.jsx'
 
 export default function LoginPage() {
   const [email,    setEmail]    = useState('')
   const [password, setPassword] = useState('')
   const [errors,   setErrors]   = useState({})
-  const { login, isLoading } = useAuthStore()
+  const { login, isLoading }    = useAuthStore()
   const navigate = useNavigate()
   const location = useLocation()
   const toast    = useToast()
@@ -33,112 +32,81 @@ export default function LoginPage() {
   }
 
   return (
-      <div className="min-h-dvh bg-zinc-950 flex border-grid">
-        {/* Left panel — branding */}
-        <div className="hidden lg:flex w-1/2 flex-col justify-between p-12 border-r border-zinc-800/60 relative overflow-hidden">
-          {/* BG geometric decoration */}
-          <div className="absolute inset-0 pointer-events-none">
-            <div className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full bg-amber-400/3 blur-3xl" />
-            <div className="absolute bottom-1/4 right-1/4 w-64 h-64 rounded-full bg-amber-400/5 blur-2xl" />
-            {/* Grid lines */}
-            <svg className="absolute inset-0 w-full h-full opacity-5" xmlns="http://www.w3.org/2000/svg">
-              <defs>
-                <pattern id="grid" width="48" height="48" patternUnits="userSpaceOnUse">
-                  <path d="M48 0H0v48" fill="none" stroke="white" strokeWidth="0.5"/>
-                </pattern>
-              </defs>
-              <rect width="100%" height="100%" fill="url(#grid)"/>
-            </svg>
+    <div className="min-h-dvh flex flex-col items-center justify-center p-6 relative">
+      <div className="w-full max-w-2xl mx-auto flex flex-col gap-10 animate-fade-in">
+        
+        {/* Massive Header like the image */}
+        <div className="flex flex-col items-start gap-1">
+          <div className="flex items-center gap-2 mb-2 px-3 py-1 rounded-full border border-carbon-500 bg-carbon-800/50">
+             <span className="w-1.5 h-1.5 rounded-full bg-coral-500"></span>
+             <span className="text-[10px] font-bold text-carbon-200 uppercase tracking-widest">Personal Knowledge Base</span>
           </div>
-
-          {/* Logo */}
-          <div className="flex items-center gap-3 relative">
-            <CortexLogo size={32} />
-            <span className="font-display font-bold text-2xl text-zinc-100">Cortex</span>
-          </div>
-
-          {/* Tagline */}
-          <div className="relative">
-            <p className="text-[11px] text-amber-400/60 font-mono uppercase tracking-[0.25em] mb-4">
-              — Personal Knowledge Base
-            </p>
-            <h2 className="font-display text-5xl font-bold text-zinc-100 leading-tight mb-6">
-              Think in<br />
-              <span className="text-gradient-amber italic">connections,</span><br />
-              not keywords.
-            </h2>
-            <p className="text-zinc-500 text-sm leading-relaxed max-w-sm">
-              Cortex uses a two-stage semantic search pipeline to surface what you know,
-              even when you can't remember exactly how you wrote it.
-            </p>
-
-            <div className="mt-8 flex flex-col gap-3">
-              {[
-                ['⌖', 'Semantic search across all your notes'],
-                ['◈', 'Two-stage retrieval: bi-encoder + reranker'],
-                ['⬡', 'Organise with tags, find with language'],
-              ].map(([icon, text]) => (
-                  <div key={text} className="flex items-center gap-3 text-sm text-zinc-500">
-                    <span className="text-amber-400/60 font-mono text-base w-5 text-center">{icon}</span>
-                    {text}
-                  </div>
-              ))}
-            </div>
-          </div>
-
-          <p className="text-zinc-800 text-xs font-mono relative">
-            CORTEX · {new Date().getFullYear()}
+          
+          <h1 className="font-display text-5xl sm:text-7xl font-bold leading-[1.1] tracking-wide text-white">
+            Knowledge
+          </h1>
+          <h1 className="font-display text-5xl sm:text-7xl font-bold leading-[1.1] tracking-wide text-brand-gradient">
+            Cortex
+          </h1>
+          
+          <p className="text-carbon-200 mt-6 text-sm sm:text-base max-w-lg leading-relaxed">
+            Paste any idea or research and get an accurate, semantic retrieval system — powered by a two-stage ML pipeline.
           </p>
+
+          <div className="flex flex-wrap gap-3 mt-6">
+            <span className="px-3 py-1.5 rounded-full border border-carbon-500 bg-carbon-800 text-xs text-carbon-200 flex items-center gap-2 font-medium">
+              📁 Semantic Search
+            </span>
+            <span className="px-3 py-1.5 rounded-full border border-carbon-500 bg-carbon-800 text-xs text-carbon-200 flex items-center gap-2 font-medium">
+              ⚡ Cross-encoder
+            </span>
+            <span className="px-3 py-1.5 rounded-full border border-carbon-500 bg-carbon-800 text-xs text-carbon-200 flex items-center gap-2 font-medium">
+              🧬 Local Embeddings
+            </span>
+          </div>
         </div>
 
-        {/* Right panel — form */}
-        <div className="flex-1 flex items-center justify-center p-6 relative">
-          <div className="w-full max-w-sm animate-slide-up">
-            {/* Mobile logo */}
-            <div className="flex items-center gap-2.5 mb-10 lg:hidden">
-              <CortexLogo size={28} />
-              <span className="font-display font-bold text-xl text-zinc-100">Cortex</span>
-            </div>
+        {/* Login Form Box */}
+        <div className="bg-carbon-900 border border-carbon-500 rounded-2xl p-6 sm:p-8 relative">
+          <div className="flex items-center justify-between border-b border-carbon-500/50 pb-4 mb-6">
+            <span className="text-xs font-bold text-carbon-200 uppercase tracking-widest">Sign In</span>
+          </div>
 
-            <div className="mb-8">
-              <h1 className="text-2xl font-bold text-zinc-100 mb-1">Welcome back</h1>
-              <p className="text-zinc-600 text-sm">Sign in to access your knowledge base</p>
-            </div>
+          <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+            <Input
+              type="email"
+              placeholder="Enter your email address..."
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              error={errors.email}
+              autoComplete="email"
+              autoFocus
+            />
+            <Input
+              type="password"
+              placeholder="Enter your password..."
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              error={errors.password}
+              autoComplete="current-password"
+            />
 
-            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-              <Input
-                  label="Email"
-                  type="email"
-                  placeholder="you@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  error={errors.email}
-                  autoComplete="email"
-                  autoFocus
-              />
-              <Input
-                  label="Password"
-                  type="password"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  error={errors.password}
-                  autoComplete="current-password"
-              />
-
-              <Button type="submit" isLoading={isLoading} size="lg" className="w-full mt-2">
+            <div className="flex items-center justify-between pt-2">
+              <Link to="/register" className="text-xs font-bold text-carbon-400 hover:text-white uppercase tracking-widest transition-colors">
+                Create Account
+              </Link>
+              <Button type="submit" isLoading={isLoading} size="lg" rightIcon={
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <path d="M5 12h14m-7-7l7 7-7 7" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              }>
                 Sign in
               </Button>
-            </form>
-
-            <p className="text-center text-sm text-zinc-600 mt-6">
-              No account?{' '}
-              <Link to="/register" className="text-amber-400 hover:text-amber-300 font-medium transition-colors">
-                Create one →
-              </Link>
-            </p>
-          </div>
+            </div>
+          </form>
         </div>
+
       </div>
+    </div>
   )
 }

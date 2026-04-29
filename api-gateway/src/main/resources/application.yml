@@ -6,7 +6,7 @@ spring:
     name: api-gateway
   data:
     redis:
-      url: ${REDIS_URL:redis://redis:6379}
+      url: ${REDIS_URL:redis://localhost:6379}
 
 management:
   endpoints:

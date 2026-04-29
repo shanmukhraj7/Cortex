@@ -4,71 +4,55 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        display: ['"Playfair Display"', 'Georgia', 'serif'],
-        sans: ['"DM Sans"', 'system-ui', 'sans-serif'],
-        mono: ['"JetBrains Mono"', 'monospace'],
+        display: ['"Syne"', 'system-ui', 'sans-serif'],
+        sans:    ['"Inter"', 'system-ui', 'sans-serif'],
+        mono:    ['"JetBrains Mono"', 'monospace'],
       },
       colors: {
-        amber: {
-          300: '#fcd34d',
-          400: '#fbbf24',
-          500: '#f59e0b',
-          600: '#d97706',
+        /* ── Carbon / Dark palette for backgrounds ── */
+        carbon: {
+          50:  '#e5e5e5',
+          100: '#a3a3a3', // Muted text
+          200: '#737373',
+          300: '#525252',
+          400: '#404040',
+          500: '#262626', // Subtle borders
+          600: '#1a1a1a',
+          700: '#171717', // Input backgrounds
+          800: '#121212', // Card backgrounds
+          900: '#0b0a0a', // Base background
+          950: '#050505',
         },
-        zinc: {
-          50:  '#fafafa',
-          100: '#f4f4f5',
-          200: '#e4e4e7',
-          300: '#d4d4d8',
-          400: '#a1a1aa',
-          500: '#71717a',
-          600: '#52525b',
-          700: '#3f3f46',
-          750: '#323238',
-          800: '#27272a',
-          850: '#1f1f22',
-          900: '#18181b',
-          950: '#09090b',
+        /* ── Coral / Vibrant Orange accent ── */
+        coral: {
+          50:  '#fff0eb',
+          100: '#ffdbcc',
+          200: '#ffbf99',
+          300: '#ff9a66',
+          400: '#ff7733',
+          500: '#ff5722', // Primary accent
+          600: '#e64a19',
+          700: '#cc3b14',
+          800: '#a62d0f',
+          900: '#80210a',
         },
       },
       backgroundImage: {
-        'grid-pattern': "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Cpath d='M0 0h40v40H0z' fill='none'/%3E%3Cpath d='M40 0H0v40' stroke='%23ffffff' stroke-width='0.3' stroke-opacity='0.04'/%3E%3C/svg%3E\")",
+        /* Subtle radial glow for top-right background */
+        'glow-radial': 'radial-gradient(circle at 80% 0%, rgba(255, 87, 34, 0.08) 0%, rgba(11, 10, 10, 0) 50%)',
       },
       animation: {
-        'fade-in':    'fadeIn 0.3s ease-out',
-        'slide-up':   'slideUp 0.3s cubic-bezier(0.16,1,0.3,1)',
-        'slide-in-r': 'slideInRight 0.35s cubic-bezier(0.16,1,0.3,1)',
-        'glow-pulse': 'glowPulse 2s ease-in-out infinite',
-        'spin-slow':  'spin 1.4s linear infinite',
-        'shimmer':    'shimmer 1.8s ease-in-out infinite',
+        'fade-in':  'fadeIn 0.3s ease-out',
+        'slide-up': 'slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
+        'shimmer':  'shimmer 2s linear infinite',
       },
       keyframes: {
-        fadeIn: {
-          '0%':   { opacity: '0' },
-          '100%': { opacity: '1' },
-        },
-        slideUp: {
-          '0%':   { opacity: '0', transform: 'translateY(16px)' },
-          '100%': { opacity: '1', transform: 'translateY(0)' },
-        },
-        slideInRight: {
-          '0%':   { opacity: '0', transform: 'translateX(20px)' },
-          '100%': { opacity: '1', transform: 'translateX(0)' },
-        },
-        glowPulse: {
-          '0%,100%': { boxShadow: '0 0 20px rgba(251,191,36,0.15)' },
-          '50%':     { boxShadow: '0 0 40px rgba(251,191,36,0.35)' },
-        },
-        shimmer: {
-          '0%':   { backgroundPosition: '-200% 0' },
-          '100%': { backgroundPosition: '200% 0' },
-        },
+        fadeIn:  { '0%': { opacity:'0' }, '100%': { opacity:'1' } },
+        slideUp: { '0%': { opacity:'0', transform:'translateY(12px)' }, '100%': { opacity:'1', transform:'translateY(0)' } },
+        shimmer: { '0%': { backgroundPosition:'-200% 0' }, '100%': { backgroundPosition:'200% 0' } },
       },
       boxShadow: {
-        'glow-amber': '0 0 30px rgba(251,191,36,0.25)',
-        'glow-sm':    '0 0 12px rgba(251,191,36,0.15)',
-        'panel':      '0 8px 32px rgba(0,0,0,0.5), 0 1px 0 rgba(255,255,255,0.04) inset',
-        'card':       '0 4px 16px rgba(0,0,0,0.4), 0 1px 0 rgba(255,255,255,0.03) inset',
+        'panel': '0 10px 30px -10px rgba(0,0,0,0.8)',
       },
     },
   },

@@ -17,29 +17,33 @@ export default function Modal({ isOpen, onClose, title, children, size = 'md', c
   if (!isOpen) return null
 
   return createPortal(
-      <div
-          ref={overlayRef}
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in"
-          onClick={(e) => e.target === overlayRef.current && onClose()}
-      >
-        <div className="absolute inset-0 bg-black/75 backdrop-blur-sm" />
-        <div className={[
-          'relative w-full bg-zinc-900 border border-zinc-700/60',
-          'rounded-2xl shadow-panel flex flex-col max-h-[90dvh] animate-slide-up',
-          sizes[size], className,
-        ].join(' ')}>
-          {title && (
-              <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800 shrink-0">
-                <h2 className="text-sm font-semibold text-zinc-100 uppercase tracking-widest">{title}</h2>
-                <button
-                    onClick={onClose}
-                    className="w-7 h-7 rounded-lg flex items-center justify-center text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-all text-lg"
-                >×</button>
-              </div>
-          )}
-          <div className="overflow-y-auto flex-1">{children}</div>
-        </div>
-      </div>,
-      document.body,
+    <div
+      ref={overlayRef}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in"
+      onClick={(e) => e.target === overlayRef.current && onClose()}
+    >
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-carbon-950/80 backdrop-blur-sm" />
+
+      {/* Modal panel */}
+      <div className={[
+        'relative w-full bg-carbon-900 rounded-2xl shadow-panel flex flex-col max-h-[90dvh] animate-slide-up',
+        'border border-carbon-500/50',
+        sizes[size], className,
+      ].join(' ')}>
+        
+        {title && (
+          <div className="flex items-center justify-between px-6 py-5 border-b border-carbon-500/30 shrink-0">
+            <h2 className="font-display text-sm uppercase tracking-[0.1em] text-carbon-50">{title}</h2>
+            <button
+              onClick={onClose}
+              className="w-8 h-8 rounded-lg flex items-center justify-center text-carbon-400 hover:text-white hover:bg-carbon-800 transition-colors text-lg"
+            >×</button>
+          </div>
+        )}
+        <div className="overflow-y-auto flex-1">{children}</div>
+      </div>
+    </div>,
+    document.body,
   )
 }

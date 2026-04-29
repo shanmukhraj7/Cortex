@@ -1,10 +1,11 @@
 import axios from 'axios'
 
-// In production the Vite build bakes in VITE_API_URL at build time.
+// In production the Vite build bakes VITE_API_URL at build time.
 // In dev the vite.config.js proxy forwards /auth, /notes, /search to the
-// gateway, so BASE_URL should be empty string (same origin) — but using
-// the full URL also works because the proxy rewrites the host.
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080'
+// gateway on the same origin, so BASE_URL must be empty ('').
+const BASE_URL = import.meta.env.PROD
+  ? (import.meta.env.VITE_API_URL || '')
+  : ''
 
 const apiClient = axios.create({
   baseURL: BASE_URL,

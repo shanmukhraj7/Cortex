@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import apiClient from '../api/client.js'
+import { extractApiError } from '../utils/helpers.js'
 
 // Normalize a tag list regardless of whether it arrives as an array or a
 // comma-separated string (defensive against both server formats).
@@ -60,12 +61,7 @@ const useNotesStore = create((set, get) => ({
       return { success: true, note: data }
     } catch (err) {
       set({ isSaving: false })
-      const detail = err.response?.data?.detail
-      const msg = typeof detail === 'string'
-        ? detail
-        : Array.isArray(detail)
-          ? detail.map((e) => e.msg).join(', ')
-          : err.message || 'Failed to create note.'
+      const msg = extractApiError(err, 'Failed to create note.')
       return { success: false, error: msg }
     }
   },
@@ -87,12 +83,7 @@ const useNotesStore = create((set, get) => ({
       return { success: true, note: data }
     } catch (err) {
       set({ isSaving: false })
-      const detail = err.response?.data?.detail
-      const msg = typeof detail === 'string'
-        ? detail
-        : Array.isArray(detail)
-          ? detail.map((e) => e.msg).join(', ')
-          : err.message || 'Failed to update note.'
+      const msg = extractApiError(err, 'Failed to update note.')
       return { success: false, error: msg }
     }
   },
