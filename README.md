@@ -318,6 +318,26 @@ docker compose up --build -d
 
 ---
 
+## Deployment (Free Tier / Student Pack)
+
+Since Cortex requires ~2GB of RAM for the machine learning models, deploying it on standard free tiers (like Railway or Render) is not possible. However, if you are a student or have access to GitHub Codespaces, you can deploy the entire stack for $0.
+
+### 1. Backend (GitHub Codespaces)
+1. Open this repository in a **GitHub Codespace** (provides an 8GB RAM environment for free).
+2. Open the terminal and run `docker compose up -d`.
+3. Go to the **Ports** tab in your Codespace.
+4. Right-click on **Port 8080** (API Gateway) and change the **Port Visibility** to **Public**.
+5. Copy the **Forwarded Address** for Port 8080 (e.g., `https://<your-codespace>-8080.app.github.dev`).
+
+### 2. Frontend (Vercel)
+1. Deploy the `frontend/` directory to Vercel.
+2. Add an environment variable in your Vercel project: `VITE_API_URL` set to the **Forwarded Address** you copied above.
+3. Deploy! The Vercel edge network will securely route requests to your active Codespace.
+
+*(Note: Codespaces go to sleep after 30 minutes of inactivity. To wake the backend up, simply reopen the Codespace, run `docker compose up -d` again, and ensure port 8080 is Public).*
+
+---
+
 ## Key design decisions
 
 **Why microservices over a monolith?**  
