@@ -1,11 +1,13 @@
 com/cortex/notes/exception/UnauthorizedException.class
+com/cortex/notes/exception/GlobalExceptionHandler.class
 com/cortex/notes/dto/response/SearchResponse.class
 com/cortex/notes/dto/request/NoteRequest.class
+com/cortex/notes/security/UserContext.class
 com/cortex/notes/entity/Note.class
 com/cortex/notes/client/MLServiceClient$EmbedResponse.class
 com/cortex/notes/client/MLServiceClient$EmbedRequest.class
-com/cortex/notes/exception/GloablExceptionHandler.class
 com/cortex/notes/security/JwtContextFilter.class
+com/cortex/notes/config/SecurityConfig.class
 com/cortex/notes/config/RedisConfig.class
 com/cortex/notes/controller/NoteController.class
 com/cortex/notes/config/ResilienceConfig.class
