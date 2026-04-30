@@ -25,10 +25,6 @@ Cortex/
 ├── auth-service/               Spring Boot 3.2 — register, login, JWT issuance
 ├── notes-service/              Spring Boot 3.2 — CRUD, cache, search coordination
 ├── ml-service/                 Python 3.11 + FastAPI — embeddings + reranking
-├── .github/
-│   └── workflows/
-│       ├── ci.yml              PR gate: Java tests + Python tests + Docker build
-│       └── deploy.yml          main: build → GHCR → deployment
 ├── docker-compose.yml          full local dev stack — one command
 ├── docker-compose.prod.yml     production config
 └── README.md                   this file
@@ -131,7 +127,6 @@ Cortex/
 │   └── package.json
 │
 ├── docker-compose.yml
-├── .github/
 └── README.md
 ```
 
@@ -154,7 +149,6 @@ Cortex/
 | API docs | SpringDoc OpenAPI 3 | Auto Swagger UI per service |
 | Testing — Java | JUnit 5, Testcontainers, MockMvc | Real PostgreSQL + Redis in Docker during tests |
 | Testing — Python | pytest, httpx | Embedding accuracy, search ranking order |
-| CI/CD | GitHub Actions | PR gate + automated tests |
 | Containers | Docker, Docker Compose | One-command local dev and production deployment |
 
 ---
@@ -320,7 +314,7 @@ docker compose up --build -d
 
 ## Deployment (Free Tier / Student Pack)
 
-Since Cortex requires ~2GB of RAM for the machine learning models, deploying it on standard free tiers (like Railway or Render) is not possible. However, if you are a student or have access to GitHub Codespaces, you can deploy the entire stack for $0.
+Since Cortex requires ~2GB of RAM for the machine learning models, deploying it on standard free tiers is not possible. However, if you are a student or have access to GitHub Codespaces, you can deploy the entire stack for $0.
 
 ### 1. Backend (GitHub Codespaces)
 1. Open this repository in a **GitHub Codespace** (provides an 8GB RAM environment for free).
