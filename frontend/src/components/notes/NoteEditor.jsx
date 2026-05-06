@@ -44,11 +44,7 @@ export default function NoteEditor({ isOpen, onClose, note = null }) {
 
   const handleSubmit = async () => {
     if (!validate()) return
-    const payload = {
-      title:   title.trim(),
-      content: content.trim(),
-      tags:    Array.isArray(tags) ? tags : [],
-    }
+    const payload = { title: title.trim(), content: content.trim(), tags: Array.isArray(tags) ? tags : [] }
     const res = isEditing
       ? await updateNote(note.id, payload)
       : await createNote(payload)
@@ -63,7 +59,15 @@ export default function NoteEditor({ isOpen, onClose, note = null }) {
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={isEditing ? 'Edit Note' : 'New Note'} size="md">
-      <div className="p-6 sm:p-8 flex flex-col gap-6">
+      <div className="p-md flex flex-col gap-md">
+        {/* ML indicator */}
+        <div className="flex items-center gap-sm p-sm bg-secondary-container/10 border border-secondary/15 rounded-lg">
+          <span className="ai-dot" />
+          <span className="font-code text-[11px] text-secondary/80">
+            Content will be vectorized by ML service on save
+          </span>
+        </div>
+
         <Input
           label="Title"
           placeholder="What is this note about?"
@@ -73,33 +77,32 @@ export default function NoteEditor({ isOpen, onClose, note = null }) {
           autoFocus
         />
 
-        <div className="flex flex-col gap-1">
-          <Textarea
-            label="Content"
-            placeholder="Write your thoughts, ideas, research..."
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            error={errors.content}
-            rows={10}
-          />
-        </div>
+        <Textarea
+          label="Content"
+          placeholder="Write your thoughts, ideas, research..."
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+          error={errors.content}
+          rows={10}
+        />
 
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-xs">
           <Input
             label="Tags"
-            placeholder="python, machine-learning, research"
+            placeholder="algorithms, python, research"
             value={tagInput}
             onChange={handleTagChange}
-            hint="Separate with commas — used for filtering and semantic context"
+            hint="Comma-separated — used for filtering and semantic context"
           />
           {tags.length > 0 && (
-            <div className="flex flex-wrap gap-2 mt-2">
-              {tags.map((tag) => (
+            <div className="flex flex-wrap gap-xs mt-xs">
+              {tags.map(tag => (
                 <TagBadge
                   key={tag}
                   tag={tag}
+                  size="sm"
                   onRemove={(t) => {
-                    const next = tags.filter((x) => x !== t)
+                    const next = tags.filter(x => x !== t)
                     setTags(next)
                     setTagInput(tagsToString(next))
                   }}
@@ -109,19 +112,19 @@ export default function NoteEditor({ isOpen, onClose, note = null }) {
           )}
         </div>
 
-        <div className="flex justify-between items-center pt-6 mt-2 border-t border-carbon-500/50">
-          <div className="flex gap-3 ml-auto">
-            <Button variant="outline" onClick={onClose} disabled={isSaving}>
-              Cancel
-            </Button>
-            <Button onClick={handleSubmit} isLoading={isSaving} rightIcon={
+        <div className="flex justify-end items-center gap-sm pt-sm border-t border-white/5 mt-xs">
+          <Button variant="secondary" onClick={onClose} disabled={isSaving}>Cancel</Button>
+          <Button
+            onClick={handleSubmit}
+            isLoading={isSaving}
+            rightIcon={
               <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                 <path d="M5 12h14m-7-7l7 7-7 7" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
-            }>
-              {isEditing ? 'Save Changes' : 'Create Note'}
-            </Button>
-          </div>
+            }
+          >
+            {isEditing ? 'Save Changes' : 'Create Note'}
+          </Button>
         </div>
       </div>
     </Modal>

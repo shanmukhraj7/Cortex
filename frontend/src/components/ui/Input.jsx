@@ -1,26 +1,26 @@
 import { forwardRef } from 'react'
 
 const Input = forwardRef(({ label, error, hint, leftIcon, rightIcon, className = '', containerClassName = '', ...props }, ref) => (
-  <div className={`flex flex-col gap-2 ${containerClassName}`}>
+  <div className={`flex flex-col gap-xs ${containerClassName}`}>
     {label && (
-      <label className="text-[10px] font-bold text-carbon-200 uppercase tracking-[0.15em]">
+      <label className="text-[10px] font-label-caps text-on-surface-variant/80 uppercase tracking-widest">
         {label}
       </label>
     )}
     <div className="relative flex items-center">
       {leftIcon && (
-        <span className="absolute left-3.5 text-carbon-400 pointer-events-none z-10">{leftIcon}</span>
+        <span className="absolute left-sm text-on-surface-variant pointer-events-none z-10">{leftIcon}</span>
       )}
       <input
         ref={ref}
         className={[
-          'w-full bg-carbon-800 text-carbon-50 placeholder-carbon-400',
-          'border rounded-xl px-4 py-3 text-sm',
+          'w-full bg-surface-container-low text-on-surface placeholder:text-on-surface-variant/50',
+          'border rounded px-sm py-sm text-body-md',
           'transition-all duration-200',
-          'focus:outline-none',
+          'focus:outline-none focus:ring-0',
           error
-            ? 'border-red-500/50 focus:border-red-500'
-            : 'border-carbon-500 hover:border-carbon-400 focus:border-coral-500',
+            ? 'border-error/50 focus:border-error'
+            : 'border-white/10 hover:border-white/20 focus:border-primary focus:border-2',
           leftIcon  ? 'pl-10' : '',
           rightIcon ? 'pr-10' : '',
           'disabled:opacity-50 disabled:cursor-not-allowed',
@@ -29,11 +29,11 @@ const Input = forwardRef(({ label, error, hint, leftIcon, rightIcon, className =
         {...props}
       />
       {rightIcon && (
-        <span className="absolute right-3.5 text-carbon-400">{rightIcon}</span>
+        <span className="absolute right-sm text-on-surface-variant">{rightIcon}</span>
       )}
     </div>
-    {error && <p className="text-xs text-red-500 font-medium">{error}</p>}
-    {hint && !error && <p className="text-xs text-carbon-400">{hint}</p>}
+    {error && <p className="text-xs text-error font-medium">{error}</p>}
+    {hint && !error && <p className="text-xs text-on-surface-variant/60">{hint}</p>}
   </div>
 ))
 Input.displayName = 'Input'

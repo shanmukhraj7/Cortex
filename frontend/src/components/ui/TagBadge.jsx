@@ -1,32 +1,41 @@
-export default function TagBadge({ tag, icon, onClick, onRemove, size = 'md' }) {
-  const sizes = {
-    sm: 'px-2 py-1 text-[10px]',
-    md: 'px-3 py-1.5 text-xs',
-  }
+// Deterministic tag category from string hash
+function getTagVariant(tag) {
+  let hash = 0
+  for (let i = 0; i < tag.length; i++) hash = tag.charCodeAt(i) + ((hash << 5) - hash)
+  const idx = Math.abs(hash) % 3
+  return ['teal', 'violet', 'default'][idx]
+}
 
-  // A random but consistent icon if none is provided
-  const defaultIcon = (
-    <svg className="w-3 h-3 text-coral-500 shrink-0" viewBox="0 0 24 24" fill="currentColor">
-      <path d="M12 2L22 20H2L12 2Z" />
-    </svg>
-  )
+const variantClasses = {
+  teal:    'tag-teal',
+  violet:  'tag-violet',
+  default: 'tag-default',
+  primary: 'tag-primary',
+}
+
+const sizes = {
+  sm: 'px-xs py-[3px] text-[10px]',
+  md: 'px-sm py-xs text-[11px]',
+}
+
+export default function TagBadge({ tag, variant, size = 'md', onClick, onRemove }) {
+  const cls = variantClasses[variant ?? getTagVariant(tag)] ?? 'tag-default'
 
   return (
     <span
       onClick={onClick}
       className={[
-        'inline-flex items-center gap-1.5 rounded-full font-medium transition-colors border',
+        'inline-flex items-center gap-xs rounded-full font-label-caps uppercase tracking-widest transition-all',
         sizes[size],
-        onClick ? 'cursor-pointer hover:bg-carbon-700 hover:border-carbon-400' : '',
-        'bg-carbon-800/80 text-carbon-200 border-carbon-500'
+        cls,
+        onClick ? 'cursor-pointer hover:brightness-110' : '',
       ].join(' ')}
     >
-      {icon || defaultIcon}
-      <span className="translate-y-[0.5px]">{tag}</span>
+      {tag}
       {onRemove && (
         <button
           onClick={(e) => { e.stopPropagation(); onRemove(tag) }}
-          className="hover:text-red-500 transition-colors ml-0.5 text-carbon-400"
+          className="hover:text-error transition-colors ml-[2px]"
           aria-label={`Remove ${tag}`}
         >
           <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">

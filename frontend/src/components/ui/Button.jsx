@@ -1,38 +1,20 @@
 import { forwardRef } from 'react'
 
 const variants = {
-  primary: [
-    'bg-coral-500 text-white font-semibold',
-    'hover:bg-coral-400',
-    'disabled:opacity-50 disabled:cursor-not-allowed',
-  ].join(' '),
-  secondary: [
-    'bg-transparent text-carbon-100 font-medium',
-    'border border-carbon-500 hover:border-carbon-400 hover:bg-carbon-800',
-    'disabled:opacity-40',
-  ].join(' '),
-  ghost: [
-    'text-carbon-200 hover:text-white hover:bg-carbon-800',
-    'disabled:opacity-40',
-  ].join(' '),
-  danger: [
-    'bg-transparent text-red-500 border border-red-500/30',
-    'hover:bg-red-500/10 hover:border-red-500',
-    'disabled:opacity-40',
-  ].join(' '),
-  outline: [
-    'bg-transparent border border-carbon-500 text-carbon-100 font-medium',
-    'hover:bg-carbon-800 hover:border-carbon-400',
-    'disabled:opacity-40',
-  ].join(' '),
+  primary: 'bg-primary text-on-primary hover:brightness-110 disabled:opacity-50',
+  secondary: 'bg-transparent text-on-surface border border-white/15 hover:bg-white/5 hover:border-white/25 disabled:opacity-40',
+  ghost: 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high disabled:opacity-40',
+  danger: 'bg-transparent text-error border border-error/30 hover:bg-error-container/20 hover:border-error/50 disabled:opacity-40',
+  outline: 'bg-transparent border border-white/15 text-on-surface hover:bg-surface-container-high hover:border-white/25 disabled:opacity-40',
+  'primary-ghost': 'bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20 disabled:opacity-40',
 }
 
 const sizes = {
-  xs: 'px-2.5 py-1.5  text-xs  rounded-lg  gap-1.5',
-  sm: 'px-3   py-2    text-sm  rounded-lg  gap-2',
-  md: 'px-5   py-2.5  text-sm  rounded-xl  gap-2',
-  lg: 'px-6   py-3    text-sm  rounded-xl  gap-2',
-  xl: 'px-8   py-4    text-base rounded-xl gap-2.5',
+  xs: 'px-xs py-[4px]  text-[11px] rounded     gap-xs',
+  sm: 'px-sm py-xs    text-label-caps rounded     gap-xs',
+  md: 'px-md py-xs    text-label-caps rounded-lg  gap-sm',
+  lg: 'px-md py-sm    text-body-md    rounded-full gap-sm',
+  xl: 'px-lg py-md    text-body-lg    rounded-full gap-sm',
 }
 
 const Button = forwardRef(({
@@ -45,8 +27,8 @@ const Button = forwardRef(({
     disabled={disabled || isLoading}
     className={[
       'inline-flex items-center justify-center transition-all duration-200',
-      'focus:outline-none focus-visible:ring-2 focus-visible:ring-coral-500/50',
-      'active:scale-[0.98] select-none cursor-pointer',
+      'focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40',
+      'active:scale-[0.97] select-none cursor-pointer font-label-caps',
       'disabled:cursor-not-allowed disabled:pointer-events-none',
       variants[variant], sizes[size], className,
     ].join(' ')}

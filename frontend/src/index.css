@@ -2,58 +2,117 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&display=swap');
 
 @layer base {
   *, *::before, *::after { box-sizing: border-box; }
-
-  html { 
-    -webkit-font-smoothing: antialiased; 
-    -moz-osx-font-smoothing: grayscale; 
-  }
+  html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
 
   body {
-    background-color: #0b0a0a;
-    color: #f5f5f5;
+    background-color: #131313;
+    color: #e5e2e1;
     font-family: 'Inter', system-ui, sans-serif;
     min-height: 100dvh;
-    background-image: radial-gradient(circle at 80% -20%, rgba(255, 87, 34, 0.08) 0%, rgba(11, 10, 10, 0) 50%);
-    background-repeat: no-repeat;
-    background-attachment: fixed;
   }
 
-  ::selection { 
-    background-color: rgba(255, 87, 34, 0.3); 
-    color: #ffffff; 
+  ::selection {
+    background-color: rgba(226, 108, 108, 0.3);
+    color: #ffdad8;
   }
 
-  ::-webkit-scrollbar       { width: 6px; height: 6px; }
-  ::-webkit-scrollbar-track { background: #0b0a0a; }
-  ::-webkit-scrollbar-thumb { background: #262626; border-radius: 99px; }
-  ::-webkit-scrollbar-thumb:hover { background: #404040; }
+  ::-webkit-scrollbar       { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: #0e0e0e; }
+  ::-webkit-scrollbar-thumb { background: #353534; border-radius: 99px; }
+  ::-webkit-scrollbar-thumb:hover { background: #564241; }
 }
 
 @layer utilities {
-  .shimmer-bg {
-    background: linear-gradient(90deg, #171717 25%, #262626 50%, #171717 75%);
-    background-size: 200% 100%;
-    animation: shimmer 1.5s linear infinite;
+  /* Glassmorphism panel */
+  .glass-panel {
+    background: rgba(22, 22, 22, 0.7);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
   }
 
+  .glass-panel-strong {
+    background: rgba(20, 20, 20, 0.85);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  /* Synapse glow effect — active AI state */
+  .synapse-glow {
+    box-shadow: 0 0 40px rgba(226, 108, 108, 0.15);
+  }
+
+  .synapse-glow-sm {
+    box-shadow: 0 0 20px rgba(226, 108, 108, 0.1);
+  }
+
+  /* Teal AI indicator glow */
+  .teal-glow {
+    box-shadow: 0 0 20px rgba(171, 205, 205, 0.2);
+  }
+
+  /* Micro-border */
+  .micro-border {
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  /* Shimmer skeleton */
+  .shimmer-bg {
+    background: linear-gradient(90deg, #1c1b1b 25%, #2a2a2a 50%, #1c1b1b 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.8s linear infinite;
+  }
+
+  /* Line clamp */
   .line-clamp-2 {
-    display: -webkit-box; -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical; overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
   }
   .line-clamp-3 {
-    display: -webkit-box; -webkit-line-clamp: 3;
-    -webkit-box-orient: vertical; overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
   }
 
-  /* Two-tone massive text gradient like the image */
-  .text-brand-gradient {
-    background: linear-gradient(90deg, #ff5722 0%, #ff8a66 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+  /* AI pulsing dot */
+  .ai-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 9999px;
+    background-color: #abcdcd;
+    animation: pulseSoft 2s ease-in-out infinite;
+  }
+
+  /* Tag chip styles */
+  .tag-teal {
+    background: rgba(46, 78, 78, 0.3);
+    color: #abcdcd;
+    border: 1px solid rgba(171, 205, 205, 0.2);
+  }
+
+  .tag-violet {
+    background: rgba(144, 126, 255, 0.15);
+    color: #c8bfff;
+    border: 1px solid rgba(200, 191, 255, 0.2);
+  }
+
+  .tag-default {
+    background: rgba(255, 255, 255, 0.04);
+    color: #ddc0be;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .tag-primary {
+    background: rgba(226, 108, 108, 0.15);
+    color: #ffb3b0;
+    border: 1px solid rgba(255, 179, 176, 0.2);
   }
 }
