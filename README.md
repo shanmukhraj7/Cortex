@@ -1,350 +1,654 @@
 # Cortex — AI-Powered Personal Knowledge Base
 
-> A production-grade microservices application: React frontend, Spring Cloud Gateway, two Spring Boot services, and a Python ML microservice delivering two-stage semantic search (bi-encoder retrieval + cross-encoder reranking) with Apple Silicon MPS acceleration.
+> Write, organise, and retrieve notes using natural language — powered by a two-stage semantic ML pipeline.
 
-**GitHub:** https://github.com/shanmukhraj7/Cortex
-
----
-
-## What is Cortex?
-
-Cortex is a personal knowledge base where you write, organise, and retrieve notes using **natural language**, not keywords.
-
-Searching *"deep learning tricks I wrote about"* surfaces a note titled *"Batch normalisation and dropout techniques"* — even though none of those words appear in your query. Every note is converted to a semantic vector when saved, and search operates in that 1024-dimensional space rather than on raw text.
-
-The two-stage retrieval pipeline mirrors what production search systems (Cohere Rerank, Elasticsearch semantic search) actually do: a fast bi-encoder retrieves 20 candidates using an HNSW vector index, then a precise cross-encoder reranks them to the final top-5. This distinction — understanding *why* you need two stages — is the difference between a tutorial and a real information retrieval system.
+[![Java](https://img.shields.io/badge/Java-21-orange?logo=openjdk)](https://openjdk.org/projects/jdk/21/)
+[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.2.4-brightgreen?logo=springboot)](https://spring.io/projects/spring-boot)
+[![Python](https://img.shields.io/badge/Python-3.11+-blue?logo=python)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.115-teal?logo=fastapi)](https://fastapi.tiangolo.com/)
+[![React](https://img.shields.io/badge/React-18-61DAFB?logo=react)](https://reactjs.org/)
+[![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker)](https://docs.docker.com/compose/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16%20+%20pgvector-4169E1?logo=postgresql)](https://github.com/pgvector/pgvector)
 
 ---
 
-## Repository layout
+## Table of Contents
 
-```text
-Cortex/
-├── frontend/                   React 18 + Vite + Tailwind CSS (Dark Coral Aesthetic) + Zustand
-├── api-gateway/                Spring Cloud Gateway 4 — routing, JWT, rate limiting
-├── auth-service/               Spring Boot 3.2 — register, login, JWT issuance
-├── notes-service/              Spring Boot 3.2 — CRUD, cache, search coordination
-├── ml-service/                 Python 3.11 + FastAPI — embeddings + reranking
-├── docker-compose.yml          full local dev stack — one command
-├── docker-compose.prod.yml     production config
-└── README.md                   this file
+- [Overview](#overview)
+- [System Architecture](#system-architecture)
+- [Project Structure](#project-structure)
+- [Services](#services)
+  - [API Gateway](#api-gateway-port-8080)
+  - [Auth Service](#auth-service-port-8081)
+  - [Notes Service](#notes-service-port-8082)
+  - [ML Service](#ml-service-port-8001)
+  - [Frontend](#frontend-port-5173)
+- [ML Pipeline](#ml-pipeline)
+- [Tech Stack](#tech-stack)
+- [Getting Started](#getting-started)
+  - [Prerequisites](#prerequisites)
+  - [Environment Setup](#environment-setup)
+  - [Run with Docker](#run-with-docker-compose-recommended)
+  - [Run Locally (Dev)](#run-locally-dev-mode)
+- [API Reference](#api-reference)
+- [Environment Variables](#environment-variables)
+
+---
+
+## Overview
+
+Cortex is a full-stack, microservices-based knowledge base application. Users can create and manage notes which are automatically embedded into a vector database using a local bi-encoder model (`BAAI/bge-large-en-v1.5`). Semantic search is powered by a **two-stage retrieval pipeline**:
+
+1. **Stage 1 — Bi-Encoder + pgvector**: Fast approximate nearest-neighbour retrieval using 1024-dimensional embeddings stored in PostgreSQL with the `pgvector` extension.
+2. **Stage 2 — Cross-Encoder Reranking**: Precise relevance scoring of the top-20 candidates using `cross-encoder/ms-marco-MiniLM-L-6-v2`, returning only the most relevant results.
+
+---
+
+## System Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                        Browser / Client                      │
+│              React 18 + Vite  (port 5173)                   │
+└────────────────────────────┬────────────────────────────────┘
+                             │ HTTP / REST
+                             ▼
+┌─────────────────────────────────────────────────────────────┐
+│                    API Gateway  (port 8080)                  │
+│          Spring Cloud Gateway  ·  WebFlux (Reactive)        │
+│                                                             │
+│  ┌──────────────────┐   ┌─────────────────────────────┐    │
+│  │  JwtAuthFilter   │   │      RateLimitFilter         │    │
+│  │ (validates JWT,  │   │  (Bucket4j token-bucket      │    │
+│  │  injects userId  │   │   backed by Redis)           │    │
+│  │  header)         │   └─────────────────────────────┘    │
+│  └──────────────────┘                                       │
+│                                                             │
+│  Routes:  /auth/**  →  auth-service                        │
+│           /notes/** →  notes-service                        │
+│           /search/**→  notes-service                        │
+└──────────┬──────────────────────┬───────────────────────────┘
+           │                      │
+           ▼                      ▼
+┌─────────────────┐    ┌──────────────────────────────────────┐
+│  Auth Service   │    │         Notes Service  (port 8082)   │
+│  (port 8081)    │    │         Spring Boot · MVC            │
+│  Spring Boot    │    │                                      │
+│                 │    │  ┌──────────────┐ ┌───────────────┐  │
+│  - Register     │    │  │NoteController│ │SearchController│  │
+│  - Login        │    │  └──────────────┘ └───────────────┘  │
+│  - JWT issue    │    │         │                 │           │
+│                 │    │         ▼                 ▼           │
+│  PostgreSQL     │    │  ┌──────────────┐ ┌───────────────┐  │
+│  + Flyway       │    │  │  NoteService │ │ SearchService │  │
+│  + jjwt 0.12   │    │  └──────────────┘ └───────────────┘  │
+└─────────────────┘    │         │                 │           │
+                       │    Redis Cache       MLServiceClient   │
+                       │    (Spring Cache)         │           │
+                       └──────────────────────┬───┘           │
+                                              │               │
+                                              ▼               │
+                              ┌───────────────────────────┐   │
+                              │   ML Service  (port 8001)  │   │
+                              │   FastAPI + Python         │   │
+                              │                            │   │
+                              │  POST /embed               │   │
+                              │  POST /search              │   │
+                              │  GET  /health              │   │
+                              │                            │   │
+                              │  ┌─────────────────────┐  │   │
+                              │  │ BiEncoder            │  │   │
+                              │  │ BAAI/bge-large-en    │  │   │
+                              │  │ 1024-dim · L2-norm   │  │   │
+                              │  └─────────────────────┘  │   │
+                              │  ┌─────────────────────┐  │   │
+                              │  │ CrossEncoder Reranker│  │   │
+                              │  │ ms-marco-MiniLM-L-6  │  │   │
+                              │  └─────────────────────┘  │   │
+                              └───────────────────────────┘   │
+                                              │               │
+                              ┌───────────────▼───────────┐   │
+                              │  PostgreSQL 16 + pgvector  │   │
+                              │  - users table             │◄──┘
+                              │  - notes table             │
+                              │  - embedding column        │
+                              │    (vector 1024)           │
+                              │  Flyway migrations         │
+                              └───────────────────────────┘
+
+                              ┌───────────────────────────┐
+                              │  Redis 7                  │
+                              │  - Rate limiting (Bucket4j│
+                              │    via API Gateway)       │
+                              │  - Notes cache            │
+                              │    (Spring Cache /        │
+                              │     notes-service)        │
+                              └───────────────────────────┘
 ```
 
 ---
 
 ## Project Structure
-```text
+
+```
 Cortex/
-├── api-gateway/                   Spring Cloud Gateway
-│   ├── src/main/java/com/cortex/gateway/
-│   │   ├── GatewayApplication.java
-│   │   ├── JwtAuthFilter.java              validates JWT on every request
-│   │   ├── RateLimitFilter.java            Bucket4j + Redis rate limiting
-│   │   └── config/
-│   │       ├── CorsConfig.java
-│   │       ├── GatewayConfig.java          route definitions
-│   │       ├── RedisConfig.java
-│   │       └── SecurityConfig.java         Security filter chain
-│   ├── src/main/resources/application.yml
-│   └── pom.xml
+├── docker-compose.yml          # Full-stack local dev orchestration
+├── docker-compose.prod.yml     # Production deployment config
+├── .env.example                # Environment variable template
 │
-├── auth-service/                  Spring Boot 3.2
-│   ├── src/main/java/com/cortex/auth/
-│   │   ├── AuthApplication.java
-│   │   ├── controller/AuthController.java
-│   │   ├── entity/User.java
-│   │   ├── exception/GlobalExceptionHandler.java
-│   │   ├── repository/UserRepository.java
-│   │   ├── security/
-│   │   │   ├── JwtService.java             JWT generation and validation
-│   │   │   └── SecurityConfig.java         Authentication provider setup
-│   │   └── service/AuthService.java        BCrypt password hashing
-│   ├── src/main/resources/
-│   │   ├── application.yml
-│   │   └── db/migration/V1__create_users.sql
-│   ├── src/test/...
+├── api-gateway/                # Spring Cloud Gateway (port 8080)
 │   ├── Dockerfile
-│   └── pom.xml
+│   ├── pom.xml
+│   └── src/main/java/com/cortex/gateway/
+│       ├── GatewayApplication.java
+│       ├── JwtAuthFilter.java          # JWT validation + userId header injection
+│       ├── RateLimitFilter.java        # Bucket4j token-bucket rate limiter
+│       └── config/
+│           ├── CorsConfig.java
+│           ├── GatewayConfig.java      # Route definitions
+│           ├── RedisConfig.java
+│           └── SecurityConfig.java
 │
-├── notes-service/                 Spring Boot 3.2
-│   ├── src/main/java/com/cortex/notes/
-│   │   ├── NotesApplication.java
-│   │   ├── client/MLServiceClient.java     RestClient HTTP caller to ML Service
-│   │   ├── config/
-│   │   │   ├── CorsConfig.java
-│   │   │   ├── RedisConfig.java
-│   │   │   ├── ResilienceConfig.java       Circuit Breaker settings
-│   │   │   └── SecurityConfig.java
-│   │   ├── controller/
-│   │   │   ├── NoteController.java
-│   │   │   └── SearchController.java
-│   │   ├── dto/                            Request & Response Records
-│   │   ├── entity/Note.java
-│   │   ├── exception/GlobalExceptionHandler.java
-│   │   ├── repository/NoteRepository.java  JPA + native pgvector (HNSW) query
-│   │   ├── security/
-│   │   │   ├── JwtContextFilter.java       reads user ID from forwarded JWT header
-│   │   │   └── UserContext.java
-│   │   └── service/
-│   │       ├── NoteService.java            @Cacheable / @CacheEvict
-│   │       └── SearchService.java          calls ml-service
-│   ├── src/main/resources/
-│   │   ├── application.yml
-│   │   └── db/migration/
-│   │       ├── V1__create_notes.sql
-│   │       ├── V2__add_pgvector.sql
-│   │       └── V3__replace_ivfflat_with_hnsw.sql
-│   ├── src/test/...
+├── auth-service/               # Authentication microservice (port 8081)
 │   ├── Dockerfile
-│   └── pom.xml
+│   ├── pom.xml
+│   └── src/main/java/com/cortex/auth/
+│       ├── AuthApplication.java
+│       ├── controller/
+│       │   └── AuthController.java     # POST /auth/register, POST /auth/login
+│       ├── entity/
+│       │   └── User.java
+│       ├── repository/
+│       │   └── UserRepository.java
+│       ├── security/
+│       │   ├── JwtService.java         # jjwt 0.12.5 — sign & validate tokens
+│       │   └── SecurityConfig.java
+│       ├── service/
+│       │   └── AuthService.java
+│       └── exception/
+│           └── GlobalExceptionHandler.java
 │
-├── ml-service/                    Python FastAPI
-│   ├── app/
-│   │   ├── __init__.py
-│   │   ├── main.py                         FastAPI app + lifespan
-│   │   ├── config.py                       pydantic-settings
-│   │   ├── database.py                     asyncpg pool + pgvector
-│   │   ├── schemas.py                      Pydantic DTOs
-│   │   ├── models/
-│   │   │   ├── embedder.py                 BAAI/bge-large-en-v1.5 + MPS
-│   │   │   └── reranker.py                 cross-encoder/ms-marco-MiniLM
-│   │   └── routers/
-│   │       ├── embed.py                    POST /embed
-│   │       └── search.py                   POST /search
-│   ├── tests/...
+├── notes-service/              # Notes CRUD + search proxy (port 8082)
+│   ├── Dockerfile
+│   ├── pom.xml
+│   └── src/main/java/com/cortex/notes/
+│       ├── NotesApplication.java
+│       ├── controller/
+│       │   ├── NoteController.java     # CRUD: /notes/**
+│       │   └── SearchController.java   # Semantic search: /search
+│       ├── service/
+│       │   ├── NoteService.java        # Business logic + Redis caching
+│       │   └── SearchService.java      # Delegates to MLServiceClient
+│       ├── client/
+│       │   └── MLServiceClient.java    # RestClient → ml-service
+│       ├── entity/
+│       │   └── Note.java               # id, userId, title, content, tags, timestamps
+│       ├── repository/
+│       │   └── NoteRepository.java
+│       ├── dto/
+│       │   ├── request/
+│       │   │   ├── NoteRequest.java
+│       │   │   └── SearchRequest.java
+│       │   └── response/
+│       │       ├── NoteResponse.java
+│       │       ├── PagedNotesResponse.java
+│       │       ├── SearchResponse.java
+│       │       └── SearchResultItem.java
+│       ├── security/
+│       │   ├── JwtContextFilter.java   # Reads X-User-Id header from gateway
+│       │   └── UserContext.java
+│       ├── config/
+│       │   ├── CorsConfig.java
+│       │   ├── RedisConfig.java
+│       │   ├── ResilienceConfig.java   # Resilience4j circuit breaker
+│       │   └── SecurityConfig.java
+│       └── exception/
+│           ├── GlobalExceptionHandler.java
+│           ├── NoteNotFoundException.java
+│           └── UnauthorizedException.java
+│
+├── ml-service/                 # Semantic ML engine (port 8001)
+│   ├── Dockerfile
 │   ├── requirements.txt
-│   ├── Dockerfile
-│   ├── .env.example
-│   └── README.md
+│   ├── requirements-cpu.txt
+│   └── app/
+│       ├── main.py             # FastAPI app, lifespan startup/shutdown
+│       ├── config.py           # Pydantic settings
+│       ├── database.py         # asyncpg connection pool
+│       ├── schemas.py          # Pydantic request/response schemas
+│       ├── models/
+│       │   ├── embedder.py     # BiEncoder (BAAI/bge-large-en-v1.5, 1024-dim)
+│       │   └── reranker.py     # CrossEncoder (ms-marco-MiniLM-L-6-v2)
+│       └── routers/
+│           ├── embed.py        # POST /embed — generate & store embeddings
+│           └── search.py       # POST /search — two-stage retrieval
 │
-├── frontend/                      React + Vite (Custom Dark Coral Design)
-│   ├── src/
-│   │   ├── components/            UI components (Button, Modal, NoteCard, etc)
-│   │   ├── pages/                 Dashboard, Login, Register
-│   │   ├── store/                 Zustand state (authStore, notesStore)
-│   │   └── utils/
-│   ├── tailwind.config.js
-│   └── package.json
-│
-├── docker-compose.yml
-└── README.md
+└── frontend/                   # React SPA (port 5173)
+    ├── Dockerfile
+    ├── package.json
+    ├── vite.config.js
+    ├── tailwind.config.js
+    └── src/
+        ├── App.jsx             # Router: /login, /register, /dashboard
+        ├── main.jsx
+        ├── index.css           # Design system tokens
+        ├── api/
+        │   └── client.js       # Axios instance (base URL, auth interceptor)
+        ├── store/
+        │   ├── authStore.js    # Zustand — user session, JWT persistence
+        │   └── notesStore.js   # Zustand — notes list, CRUD, search
+        ├── pages/
+        │   ├── LoginPage.jsx
+        │   ├── RegisterPage.jsx
+        │   └── DashboardPage.jsx
+        ├── components/
+        │   ├── layout/
+        │   │   ├── Navbar.jsx
+        │   │   ├── Sidebar.jsx
+        │   │   └── ProtectedRoute.jsx
+        │   ├── notes/
+        │   │   ├── NoteCard.jsx
+        │   │   ├── NoteDetail.jsx
+        │   │   ├── NoteEditor.jsx
+        │   │   └── NoteList.jsx
+        │   ├── search/
+        │   │   └── SearchBar.jsx
+        │   └── ui/
+        │       ├── Button.jsx
+        │       ├── Input.jsx
+        │       ├── TextArea.jsx
+        │       ├── Modal.jsx
+        │       ├── TagBadge.jsx
+        │       ├── Toast.jsx
+        │       └── CortexLogo.jsx
+        └── utils/
+            └── helpers.js
 ```
 
 ---
 
-## Tech stack
-| Layer | Technology | Why |
-|---|---|---|
-| Frontend | React 18, Vite, Tailwind CSS, Zustand | Fast iteration, Dark Coral UI with Syne typography |
-| HTTP client | Axios | JWT interceptors, 401 redirect, timeout |
-| Gateway | Spring Cloud Gateway 4, Java 21 | Reactive routing, JWT filter, Bucket4j rate limiting |
-| Auth service | Spring Boot 3.2, Spring Security 6, JJWT, BCrypt | Battle-tested JWT + password hashing |
-| Notes service | Spring Boot 3.2, Spring Data JPA, Spring Cache | @Cacheable annotations, virtual threads |
-| DB migrations | Flyway | Versioned, reproducible SQL schema |
-| Cache + rate limit | Redis 7, Bucket4j | Token-bucket rate limit, TTL-based note cache |
-| Database | PostgreSQL 16 + pgvector | Notes + 1024-dim vectors (HNSW indexed) in one ACID store |
-| ML framework | Python 3.11, FastAPI, PyTorch | MPS GPU on Apple Silicon, CPU fallback in Docker |
-| Bi-encoder | BAAI/bge-large-en-v1.5 | No. 1 MTEB retrieval; 1024-dim; ~15 ms/embed on M4 |
-| Cross-encoder | cross-encoder/ms-marco-MiniLM-L-6-v2 | Reranks top-20 → top-5 with 8–12 pt precision gain |
-| API docs | SpringDoc OpenAPI 3 | Auto Swagger UI per service |
-| Testing — Java | JUnit 5, Testcontainers, MockMvc | Real PostgreSQL + Redis in Docker during tests |
-| Testing — Python | pytest, httpx | Embedding accuracy, search ranking order |
-| Containers | Docker, Docker Compose | One-command local dev and production deployment |
+## Services
+
+### API Gateway (port 8080)
+
+The single entry point for all client traffic. Built on **Spring Cloud Gateway** (reactive/WebFlux).
+
+| Responsibility | Detail |
+|---|---|
+| **JWT Validation** | `JwtAuthFilter` — validates the `Authorization: Bearer <token>` header on every protected route and injects `X-User-Id` downstream |
+| **Rate Limiting** | `RateLimitFilter` — Bucket4j token-bucket algorithm, state stored in Redis |
+| **Routing** | `/auth/**` → auth-service · `/notes/**` and `/search/**` → notes-service |
+| **CORS** | Configured globally in `CorsConfig` |
+
+**Dependencies**: Spring Cloud Gateway, Spring Security, jjwt 0.12.5, Bucket4j 8.10.1, Redis (Lettuce reactive)
 
 ---
 
-## System architecture
+### Auth Service (port 8081)
 
-```text
-┌──────────────────────────────────────────────────────────────┐
-│                      Browser (React 18)                      │
-│   Zustand · Axios JWT interceptor · Tailwind CSS             │
-│   Login · Dashboard · NoteEditor · Semantic search bar       │
-└───────────────────────────┬──────────────────────────────────┘
-                            │  HTTPS · Authorization: Bearer <jwt>
-                            ▼
-┌──────────────────────────────────────────────────────────────┐
-│               api-gateway  :8080                             │
-│  CorsConfig → RateLimitFilter (Bucket4j/Redis)               │
-│  → JwtAuthFilter → route matcher                             │
-│  /api/auth/**   ──► lb://auth-service  (no JWT required)     │
-│  /api/notes/**  ──► lb://notes-service (JWT validated here)  │
-│  /api/search/** ──► lb://notes-service (JWT validated here)  │
-└──────────┬──────────────────────────────┬────────────────────┘
-           │                              │
-           ▼                              ▼
-┌──────────────────┐          ┌───────────────────────────────┐
-│  auth-service    │          │  notes-service  :8082         │
-│  :8081           │          │  NoteController               │
-│  AuthController  │          │  SearchController             │
-│  AuthService     │          │  NoteService (@Cacheable)     │
-│  BCrypt · JJWT   │          │  SearchService                │
-│                  │          │  MLServiceClient → ml-service │
-└────────┬─────────┘          └──────┬──────────────┬─────────┘
-         │                           │              │
-    ┌────▼──────────────────────┐  ┌─▼──────┐  ┌───▼──────────────────┐
-    │ PostgreSQL 16 + pgvector  │  │ Redis 7│  │  ml-service  :8001   │
-    │ schema: cortex_auth       │  │ cache  │  │  FastAPI · PyTorch   │
-    │ schema: cortex_notes      │◄─┤ rate   │  │  bge-large bi-encoder│
-    │ embedding vector(1024)    │  │ limit  │  │  ms-marco reranker   │
-    └───────────────────────────┘  └────────┘  └──────────────────────┘
-```
+Handles user registration, login, and JWT issuance.
 
----
-
-## Two-stage semantic search
-
-### Why two stages?
-
-A bi-encoder computes embeddings independently for query and document, then compares with dot product. It is fast — O(1) per candidate once the index is built — but approximate, because the model never sees the query and document together.
-
-A cross-encoder takes the query and each candidate document *concatenated* as a single input. It sees the relationship between them, producing a genuine relevance score. The catch: it is 10–50× slower per pair, making it impractical to run against every note in the database.
-
-The two-stage pattern solves this: the bi-encoder retrieves the 20 most-plausible candidates cheaply, then the cross-encoder reranks those 20 with full precision. This is how production search systems work.
-
-### Search latency breakdown (M4 MacBook, local dev)
-
-| Step | What happens | Time |
-|---|---|---|
-| Debounce | Frontend waits for 400 ms pause in typing | 400 ms |
-| Bi-encode query | bge-large-en-v1.5, MPS device | ~15 ms |
-| pgvector ANN | HNSW cosine distance, top-20 | ~2 ms |
-| Cross-encode | ms-marco-MiniLM, 20 pairs, CPU | ~40 ms |
-| Network + serialise | API gateway → notes → ml → back | ~15 ms |
-| **Total** | **User sees results** | **~72 ms** |
-
-### Why BAAI/bge-large-en-v1.5?
-This model ranks consistently at the top of the MTEB (Massive Text Embedding Benchmark) English retrieval leaderboard. It was fine-tuned for asymmetric retrieval — short query against long document — which is exactly the note search use case. Its 1024-dimensional output gives more representational capacity than the commonly used 384-dim `all-MiniLM-L6-v2`, yielding roughly 8–12 percentage points better top-5 accuracy on retrieval benchmarks.
-
-### Why pgvector instead of FAISS?
-FAISS is a flat binary file: no transactions, no per-user isolation, manual serialisation, a separate process to manage. pgvector is a PostgreSQL extension — vectors live in the same table as notes, user-scoped queries are a `WHERE user_id = ?`, ACID guarantees apply, and backups are automatic. With the modern **HNSW index**, retrieval speed matches FAISS while keeping all the operational benefits of Postgres.
-
----
-
-## Service port map
-
-| Service | Local port | Responsibility |
-|---|---|---|
-| api-gateway | 8080 | All external traffic enters here |
-| auth-service | 8081 | Register, login, JWT issuance |
-| notes-service | 8082 | Note CRUD, caching, search coordination |
-| ml-service | 8001 | Embedding and reranking |
-| PostgreSQL | 5432 | Persistent data |
-| Redis | 6379 | Cache and rate limit |
-| frontend | 5173 | React dev server |
-
----
-
-## API reference
-
-### Auth (`/api/auth` — no JWT required)
-
-| Method | Path | Body | Response |
+| Endpoint | Method | Auth | Description |
 |---|---|---|---|
-| POST | `/register` | `{email, password}` | `{userId, email, createdAt}` |
-| POST | `/login` | `{email, password}` | `{accessToken, tokenType, expiresIn}` |
+| `/auth/register` | POST | Public | Create new account (email + password) |
+| `/auth/login` | POST | Public | Authenticate and receive a JWT |
+| `/actuator/health` | GET | Public | Health check |
 
-### Notes (`/api/notes` — requires `Authorization: Bearer <token>`)
+**Key details**:
+- Passwords hashed with **BCrypt** via Spring Security
+- JWT signed with **HS256** using `jjwt 0.12.5` (configurable expiry, default 24 h)
+- Schema managed by **Flyway** migrations
+- API docs: `http://localhost:8081/swagger-ui.html` (SpringDoc OpenAPI 2.3.0)
 
-| Method | Path | Query params | Description |
+---
+
+### Notes Service (port 8082)
+
+Core business service — CRUD for notes and semantic search delegation.
+
+| Endpoint | Method | Auth | Description |
 |---|---|---|---|
-| GET | `/` | `page, size, tag` | Paginated notes, optional tag filter |
-| POST | `/` | — | Create note — triggers ML embed on save |
-| GET | `/{id}` | — | Single note (Redis cached, TTL 10 min) |
-| PUT | `/{id}` | — | Update note — re-embeds, evicts cache |
-| DELETE | `/{id}` | — | Delete note and pgvector row |
+| `GET /notes` | GET | JWT | List all notes for the authenticated user (paginated) |
+| `POST /notes` | POST | JWT | Create a note — triggers embedding in ml-service |
+| `GET /notes/{id}` | GET | JWT | Get a single note |
+| `PUT /notes/{id}` | PUT | JWT | Update a note — re-embeds content |
+| `DELETE /notes/{id}` | DELETE | JWT | Delete a note and its embedding |
+| `POST /search` | POST | JWT | Semantic search over the user's knowledge graph |
 
-### Search (`/api/search` — requires JWT)
+**Key details**:
+- Reads `X-User-Id` header injected by the gateway (no direct JWT parsing)
+- Notes list and individual notes cached in **Redis** via `@Cacheable` (Spring Cache)
+- Communicates with ml-service via **Spring RestClient** (`MLServiceClient`)
+- **Resilience4j circuit breaker** wraps all ml-service calls — falls back gracefully if ml-service is down
+- `pgvector` Java client (`com.pgvector:pgvector:0.1.4`) for vector column writes
 
-| Method | Path | Body | Description |
-|---|---|---|---|
-| POST | `/` | `{query, topK}` | Two-stage semantic search |
+---
 
-**Request:**
-```json
-{ "query": "sorting algorithms I wrote about", "topK": 5 }
+### ML Service (port 8001)
+
+Python FastAPI service — the semantic intelligence layer.
+
+| Endpoint | Method | Description |
+|---|---|---|
+| `POST /embed` | POST | Embed a note's content and upsert the `embedding` column in PostgreSQL |
+| `POST /search` | POST | Two-stage semantic search (see [ML Pipeline](#ml-pipeline)) |
+| `GET /health` | GET | Returns model load status and device info |
+| `GET /docs` | GET | Interactive Swagger UI |
+
+**Models loaded at startup** (downloaded on first run, cached in `model_cache/`):
+| Model | Size | Purpose |
+|---|---|---|
+| `BAAI/bge-large-en-v1.5` | ~1.2 GB | Bi-encoder · 1024-dim L2-normalized embeddings |
+| `cross-encoder/ms-marco-MiniLM-L-6-v2` | ~120 MB | Cross-encoder reranker |
+
+> ⚠️ **First startup** downloads ~1.35 GB of model weights. The `start_period: 120s` in Docker Compose accounts for this.
+
+---
+
+### Frontend (port 5173)
+
+React 18 SPA with Vite, TailwindCSS, and Zustand for state management.
+
+| Page / Route | Description |
+|---|---|
+| `/login` | Authentication page with "Knowledge Cortex" hero, feature badges |
+| `/register` | Account creation page |
+| `/dashboard` | Main workspace — note list, editor, semantic search, sidebar navigation |
+
+**Key details**:
+- `ProtectedRoute` — redirects unauthenticated users to `/login`
+- `authStore` (Zustand) — persists JWT to `localStorage`, attaches as `Authorization` header
+- `notesStore` (Zustand) — manages note CRUD and search state
+- Axios `client.js` — configures base URL (`VITE_API_URL`) and auth interceptor
+- Dark-mode-first design system defined in `index.css`
+
+---
+
+## ML Pipeline
+
 ```
-
-**Response:**
-```json
-{
-  "results": [
-    {
-      "id": "uuid",
-      "title": "Quicksort vs Mergesort",
-      "contentPreview": "Quicksort has O(n log n) average case performance...",
-      "tags": ["algorithms", "dsa"],
-      "similarityScore": 0.94,
-      "rerankScore": 3.21,
-      "createdAt": "2026-03-15T10:22:00Z"
-    }
-  ],
-  "queryTimeMs": 74,
-  "retrievalCount": 20
-}
+User Query
+    │
+    ▼
+┌─────────────────────────────────────────────────────┐
+│  STAGE 1 — Bi-Encoder Retrieval  (fast, ~ms)        │
+│                                                     │
+│  1. Embed query with BAAI/bge-large-en-v1.5         │
+│     (prepends "Represent this sentence for          │
+│      searching relevant passages: " prefix)         │
+│  2. Cosine similarity search via pgvector            │
+│     ivfflat index  (embedding <=> $1::vector)       │
+│  3. Return top-20 candidate notes for user_id       │
+└──────────────────────┬──────────────────────────────┘
+                       │ 20 candidates
+                       ▼
+┌─────────────────────────────────────────────────────┐
+│  STAGE 2 — Cross-Encoder Reranking  (precise, ~ms)  │
+│                                                     │
+│  1. Form (query, note_content) pairs for all 20     │
+│  2. Score with cross-encoder/ms-marco-MiniLM-L-6-v2 │
+│     (sees full query + document context together)   │
+│  3. Sort by rerank_score descending                 │
+│  4. Return top_k results                            │
+└──────────────────────┬──────────────────────────────┘
+                       │
+                       ▼
+              SearchResponse {
+                results: [{ note_id, similarity_score,
+                            rerank_score }],
+                query_time_ms,
+                retrieval_count
+              }
 ```
 
 ---
 
-## Running locally
+## Tech Stack
+
+| Layer | Technology | Version |
+|---|---|---|
+| **Frontend** | React + Vite | 18 / 5.x |
+| **State Management** | Zustand | 4.5 |
+| **Styling** | TailwindCSS | 3.4 |
+| **HTTP Client** | Axios | 1.6 |
+| **API Gateway** | Spring Cloud Gateway (WebFlux) | 2023.0.1 |
+| **Rate Limiting** | Bucket4j + Redis | 8.10.1 |
+| **Auth Service** | Spring Boot MVC | 3.2.4 / Java 21 |
+| **Notes Service** | Spring Boot MVC | 3.2.4 / Java 21 |
+| **ML Service** | FastAPI + Uvicorn | 0.115 / Python 3.11+ |
+| **Bi-Encoder** | sentence-transformers (BAAI/bge-large-en-v1.5) | 3.3.1 |
+| **Cross-Encoder** | sentence-transformers (ms-marco-MiniLM-L-6-v2) | 3.3.1 |
+| **Database** | PostgreSQL 16 + pgvector | — |
+| **Cache** | Redis 7 | — |
+| **DB Migrations** | Flyway | 10.10.0 |
+| **JWT** | jjwt | 0.12.5 |
+| **Circuit Breaker** | Resilience4j | — |
+| **Containerisation** | Docker + Docker Compose | — |
+
+---
+
+## Getting Started
 
 ### Prerequisites
 
-- Docker and Docker Compose
-- Java 21
-- Node.js 18+
-- Python 3.11+
+| Tool | Minimum version |
+|---|---|
+| Docker Desktop | 24+ |
+| Docker Compose | v2 (plugin) |
+| Node.js (frontend dev only) | 18+ |
+| Java 21 (service dev only) | 21 |
+| Python 3.11 (ML dev only) | 3.11 |
 
-### One command — full stack
+### Environment Setup
 
 ```bash
-git clone https://github.com/shanmukhraj7/Cortex
+# Clone the repository
+git clone https://github.com/shanmukhraj7/Cortex.git
 cd Cortex
-cp .env.example .env          # fill in JWT_SECRET
+
+# Copy and edit the environment file
+cp .env.example .env
+```
+
+Edit `.env` and set at minimum:
+
+```env
+POSTGRES_PASSWORD=your_secure_password
+JWT_SECRET=your_32+_char_secret_key
+```
+
+### Run with Docker Compose (Recommended)
+
+```bash
+# Build and start all services
+docker compose up --build
+
+# Or run in detached mode
 docker compose up --build -d
 
-# Frontend:       http://localhost:5173
-# Gateway:        http://localhost:8080
-# Auth Swagger:   http://localhost:8081/swagger-ui.html
-# Notes Swagger:  http://localhost:8082/swagger-ui.html
-# ML docs:        http://localhost:8001/docs
+# Watch logs for a specific service
+docker compose logs -f ml-service
+
+# Stop everything
+docker compose down
+```
+
+**Startup order** (enforced by `depends_on` + healthchecks):
+
+```
+postgres + redis  →  auth-service + ml-service  →  notes-service  →  api-gateway  →  frontend
+```
+
+> ⚠️ `ml-service` has a `start_period: 120s` — it downloads ~1.35 GB of model weights on first run.
+
+**Exposed ports after `docker compose up`**:
+
+| Service | URL |
+|---|---|
+| Frontend | http://localhost:5173 |
+| API Gateway | http://localhost:8080 |
+| Auth Service | http://localhost:8081 |
+| Auth Swagger UI | http://localhost:8081/swagger-ui.html |
+| Notes Service | http://localhost:8082 |
+| ML Service | http://localhost:8001 |
+| ML Service Docs | http://localhost:8001/docs |
+
+---
+
+### Run Locally (Dev Mode)
+
+#### Frontend only
+
+```bash
+cd frontend
+npm install
+npm run dev
+# → http://localhost:5173
+```
+
+Set `VITE_API_URL` in `frontend/.env.local` to point at your backend:
+```env
+VITE_API_URL=http://localhost:8080
+```
+
+#### Auth Service
+
+```bash
+cd auth-service
+./mvnw spring-boot:run \
+  -Dspring-boot.run.jvmArguments="-DDATABASE_URL=jdbc:postgresql://localhost:5432/cortex \
+  -DDATABASE_USERNAME=postgres \
+  -DDATABASE_PASSWORD=yourpassword \
+  -DJWT_SECRET=your-secret-key"
+```
+
+#### Notes Service
+
+```bash
+cd notes-service
+./mvnw spring-boot:run \
+  -Dspring-boot.run.jvmArguments="-DDATABASE_URL=jdbc:postgresql://localhost:5432/cortex \
+  -DDATABASE_USERNAME=postgres \
+  -DDATABASE_PASSWORD=yourpassword \
+  -DML_SERVICE_URL=http://localhost:8001 \
+  -DREDIS_HOST=localhost \
+  -DREDIS_PORT=6379"
+```
+
+#### ML Service
+
+```bash
+cd ml-service
+
+# CPU-only install (recommended for development)
+pip install -r requirements-cpu.txt
+
+# Or full install with GPU support
+pip install -r requirements.txt
+
+# Copy and configure environment
+cp .env.example .env
+
+# Start the service
+uvicorn app.main:app --host 0.0.0.0 --port 8001 --reload
+# → http://localhost:8001/docs
+```
+
+#### API Gateway
+
+```bash
+cd api-gateway
+./mvnw spring-boot:run \
+  -Dspring-boot.run.jvmArguments="-DJWT_SECRET=your-secret-key \
+  -DAUTH_SERVICE_URL=http://localhost:8081 \
+  -DNOTES_SERVICE_URL=http://localhost:8082 \
+  -DREDIS_URL=redis://localhost:6379"
 ```
 
 ---
 
-## Deployment (Free Tier / Student Pack)
+## API Reference
 
-Since Cortex requires ~2GB of RAM for the machine learning models, deploying it on standard free tiers is not possible. However, if you are a student or have access to GitHub Codespaces, you can deploy the entire stack for $0.
+All requests to protected endpoints must include:
+```
+Authorization: Bearer <jwt_token>
+```
 
-### 1. Backend (GitHub Codespaces)
-1. Open this repository in a **GitHub Codespace** (provides an 8GB RAM environment for free).
-2. Open the terminal and run `docker compose up -d`.
-3. Go to the **Ports** tab in your Codespace.
-4. Right-click on **Port 8080** (API Gateway) and change the **Port Visibility** to **Public**.
-5. Copy the **Forwarded Address** for Port 8080 (e.g., `https://<your-codespace>-8080.app.github.dev`).
+### Auth
 
-### 2. Frontend (Vercel)
-1. Deploy the `frontend/` directory to Vercel.
-2. Add an environment variable in your Vercel project: `VITE_API_URL` set to the **Forwarded Address** you copied above.
-3. Deploy! The Vercel edge network will securely route requests to your active Codespace.
+```http
+POST /auth/register
+Content-Type: application/json
 
-*(Note: Codespaces go to sleep after 30 minutes of inactivity. To wake the backend up, simply reopen the Codespace, run `docker compose up -d` again, and ensure port 8080 is Public).*
+{ "email": "user@example.com", "password": "securepassword" }
+```
+
+```http
+POST /auth/login
+Content-Type: application/json
+
+{ "email": "user@example.com", "password": "securepassword" }
+
+→ { "token": "eyJ...", "userId": "uuid", "email": "..." }
+```
+
+### Notes
+
+```http
+# List notes (paginated)
+GET /notes?page=0&size=20
+
+# Create a note
+POST /notes
+{ "title": "My Note", "content": "Note content...", "tags": ["ai", "research"] }
+
+# Update a note
+PUT /notes/{id}
+{ "title": "Updated", "content": "Updated content...", "tags": ["updated"] }
+
+# Delete a note
+DELETE /notes/{id}
+```
+
+### Search
+
+```http
+POST /search
+{ "query": "machine learning embeddings", "top_k": 5 }
+
+→ {
+    "results": [
+      { "noteId": "uuid", "title": "...", "rerank_score": 0.92, "similarity_score": 0.87 }
+    ],
+    "query_time_ms": 142.3,
+    "retrieval_count": 20
+  }
+```
 
 ---
 
-## Key design decisions
+## Environment Variables
 
-**Why microservices over a monolith?**  
-Each service can be independently deployed, scaled, and tested. The ML service is Python because the entire ML ecosystem is Python-native. The Spring Boot services are Java because Spring Security, Spring Cache, and Testcontainers integration tests are mature and production-proven.
-
-**Why Spring Cloud Gateway instead of Nginx?**  
-The gateway validates JWTs and forwards a trusted `X-User-Id` header to downstream services. Nginx cannot do this natively. Spring Cloud Gateway does it in a typed Java filter with full access to the Spring security context, rate limiting via Bucket4j, and reactive routing.
-
-**Why Bucket4j for rate limiting?**  
-Bucket4j implements the token bucket algorithm with Redis as the backing store — distributed, correct across multiple gateway replicas, and configurable in a few lines of Java. The overhead is under 1 ms per request.
+| Variable | Service | Default | Description |
+|---|---|---|---|
+| `POSTGRES_DB` | postgres | `cortex` | Database name |
+| `POSTGRES_USER` | postgres | `postgres` | Database user |
+| `POSTGRES_PASSWORD` | postgres | — | **Required** — DB password |
+| `JWT_SECRET` | auth, gateway | — | **Required** — HS256 signing key (min 32 chars) |
+| `JWT_EXPIRATION_MINUTES` | auth | `1440` | Token lifetime (minutes) |
+| `DEVICE` | ml-service | `cpu` | Inference device: `cpu`, `cuda`, `mps` |
+| `BI_ENCODER_MODEL` | ml-service | `BAAI/bge-large-en-v1.5` | HuggingFace model ID |
+| `CROSS_ENCODER_MODEL` | ml-service | `cross-encoder/ms-marco-MiniLM-L-6-v2` | HuggingFace model ID |
+| `MODEL_CACHE_DIR` | ml-service | `/app/model_cache` | Local model weights cache path |
+| `TOP_K_RETRIEVAL` | ml-service | `20` | Bi-encoder candidate pool size |
+| `VITE_API_URL` | frontend | `http://localhost:8080` | API Gateway base URL |
+| `REDIS_URL` | api-gateway | — | Redis connection URI |
+| `REDIS_HOST` | notes-service | — | Redis host |
+| `REDIS_PORT` | notes-service | `6379` | Redis port |
+| `ML_SERVICE_URL` | notes-service | — | Internal ML service URL |
 
 ---
 
 ## License
 
-MIT
+Shanmukha Raj
