@@ -104,7 +104,7 @@ export default function NoteCard({ note, onOpen, onEdit, onDelete }) {
       </div>
 
       {/* Rerank badge */}
-      {note.rerank_score !== undefined && (
+      {note.rerank_score != null && (
         <div className="absolute top-md right-md">
           <span className="font-code text-[10px] text-secondary bg-secondary-container/20 border border-secondary/20 px-xs py-[2px] rounded">
             Rerank: {note.rerank_score.toFixed(2)}

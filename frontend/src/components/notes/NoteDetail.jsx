@@ -43,7 +43,7 @@ export default function NoteDetail({ note, isOpen, onClose, onEdit, onDelete }) 
               {Math.round(note.similarity_score * 100)}% Similarity
             </span>
           )}
-          {note.rerank_score !== undefined && (
+          {note.rerank_score != null && (
             <span className="font-code text-[11px] text-secondary bg-secondary-container/20 border border-secondary/20 px-xs py-[2px] rounded">
               Rerank: {note.rerank_score.toFixed(2)}
             </span>
@@ -63,7 +63,7 @@ export default function NoteDetail({ note, isOpen, onClose, onEdit, onDelete }) 
         </div>
 
         {/* ML metadata */}
-        {(note.similarity_score !== undefined || note.rerank_score !== undefined) && (
+        {(note.similarity_score != null || note.rerank_score != null) && (
           <div className="glass-panel rounded-lg p-sm flex items-center gap-md border border-secondary/10">
             <div className="w-1 h-8 bg-secondary rounded-full opacity-50" />
             <div>
