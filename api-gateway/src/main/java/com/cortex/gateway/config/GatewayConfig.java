@@ -12,8 +12,9 @@ public class GatewayConfig {
     @Bean
     public RouteLocator routes(
             RouteLocatorBuilder builder,
-            @Value("${cortex.services.auth-url}") String authUrl,
-            @Value("${cortex.services.notes-url}") String notesUrl
+            @Value("${cortex.services.auth-url}")     String authUrl,
+            @Value("${cortex.services.notes-url}")     String notesUrl,
+            @Value("${cortex.services.settings-url}") String settingsUrl
     ) {
         return builder.routes()
                 // Auth routes — public, no JWT required (enforced in JwtAuthFilter)
@@ -25,6 +26,9 @@ public class GatewayConfig {
                 // Search route — JWT required
                 .route("search-root", r -> r.path("/search").uri(notesUrl))
                 .route("search-sub",  r -> r.path("/search/**").uri(notesUrl))
+                // Settings routes — JWT required
+                .route("settings-root", r -> r.path("/settings").uri(settingsUrl))
+                .route("settings-sub",  r -> r.path("/settings/**").uri(settingsUrl))
                 .build();
     }
 }

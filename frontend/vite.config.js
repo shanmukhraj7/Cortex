@@ -13,9 +13,10 @@ export default defineConfig(({ mode }) => {
       proxy: {
         // Proxy all API paths through the gateway so the browser never hits
         // CORS issues in dev. The gateway's CorsConfig handles production.
-        '/auth':   { target: apiTarget, changeOrigin: true },
-        '/notes':  { target: apiTarget, changeOrigin: true },
-        '/search': { target: apiTarget, changeOrigin: true },
+        '/auth':     { target: apiTarget, changeOrigin: true },
+        '/notes':    { target: apiTarget, changeOrigin: true },
+        '/search':   { target: apiTarget, changeOrigin: true },
+        '/settings': { target: apiTarget, changeOrigin: true },
       },
     },
     build: {

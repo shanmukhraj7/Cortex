@@ -6,6 +6,8 @@
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.2.4-brightgreen?logo=springboot)](https://spring.io/projects/spring-boot)
 [![Python](https://img.shields.io/badge/Python-3.11+-blue?logo=python)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115-teal?logo=fastapi)](https://fastapi.tiangolo.com/)
+[![Go](https://img.shields.io/badge/Go-1.23-00ADD8?logo=go)](https://go.dev/)
+[![Gin](https://img.shields.io/badge/Gin-1.10-00ADD8?logo=go)](https://gin-gonic.com/)
 [![React](https://img.shields.io/badge/React-18-61DAFB?logo=react)](https://reactjs.org/)
 [![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker)](https://docs.docker.com/compose/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16%20+%20pgvector-4169E1?logo=postgresql)](https://github.com/pgvector/pgvector)
@@ -21,6 +23,7 @@
   - [API Gateway](#api-gateway-port-8080)
   - [Auth Service](#auth-service-port-8081)
   - [Notes Service](#notes-service-port-8082)
+  - [Settings Service](#settings-service-port-8083)
   - [ML Service](#ml-service-port-8001)
   - [Frontend](#frontend-port-5173)
 - [ML Pipeline](#ml-pipeline)
@@ -64,9 +67,10 @@ Cortex is a full-stack, microservices-based knowledge base application. Users ca
 │  │  header)         │   └─────────────────────────────┘    │
 │  └──────────────────┘                                       │
 │                                                             │
-│  Routes:  /auth/**  →  auth-service                        │
-│           /notes/** →  notes-service                        │
-│           /search/**→  notes-service                        │
+│  Routes:  /auth/**     →  auth-service                        │
+│           /notes/**    →  notes-service                        │
+│           /search/**   →  notes-service                        │
+│           /settings/** →  settings-service                     │
 └──────────┬──────────────────────┬───────────────────────────┘
            │                      │
            ▼                      ▼
@@ -324,6 +328,31 @@ Core business service — CRUD for notes and semantic search delegation.
 
 ---
 
+### Settings Service (port 8083)
+
+Go microservice — user preferences, account management, and danger zone.
+
+| Endpoint | Method | Auth | Description |
+|---|---|---|---|
+| `/settings` | GET | JWT | Fetch current preferences (returns defaults if not yet saved) |
+| `/settings` | PUT | JWT | Full replace of all preference fields |
+| `/settings` | PATCH | JWT | Partial update — only supplied fields change |
+| `/settings` | DELETE | JWT | Reset preferences to factory defaults |
+| `/settings/account/password` | PUT | JWT | Change password (verifies current password via bcrypt) |
+| `/settings/account` | DELETE | JWT | **Danger zone** — delete account (requires password confirmation; cascades notes + settings + user) |
+| `/health` | GET | Public | `{"status":"ok"}` |
+
+**Key details**:
+- Written in **Go 1.23** with the **Gin** framework
+- Reads `X-User-Id` header injected by the gateway (same trust model as notes-service)
+- Settings stored as **JSONB** in `user_settings` table — flexible, schema-free evolution
+- Password hashed with **bcrypt (cost 10)** — compatible with Spring Security's BCryptPasswordEncoder
+- Account deletion is a **single atomic DB transaction**: `user_settings` → `notes` → `users`
+- Migrations embedded in the binary via Go's `embed.FS` — no external SQL files at runtime
+- Multi-stage Docker build produces an **~15 MB Alpine image** (vs 250 MB+ for JVM services)
+
+---
+
 ### ML Service (port 8001)
 
 Python FastAPI service — the semantic intelligence layer.
@@ -415,6 +444,7 @@ User Query
 | **Rate Limiting** | Bucket4j + Redis | 8.10.1 |
 | **Auth Service** | Spring Boot MVC | 3.2.4 / Java 21 |
 | **Notes Service** | Spring Boot MVC | 3.2.4 / Java 21 |
+| **Settings Service** | Go + Gin | 1.23 / 1.10.0 |
 | **ML Service** | FastAPI + Uvicorn | 0.115 / Python 3.11+ |
 | **Bi-Encoder** | sentence-transformers (BAAI/bge-large-en-v1.5) | 3.3.1 |
 | **Cross-Encoder** | sentence-transformers (ms-marco-MiniLM-L-6-v2) | 3.3.1 |
@@ -490,6 +520,7 @@ postgres + redis  →  auth-service + ml-service  →  notes-service  →  api-g
 | Auth Service | http://localhost:8081 |
 | Auth Swagger UI | http://localhost:8081/swagger-ui.html |
 | Notes Service | http://localhost:8082 |
+| Settings Service | http://localhost:8083 |
 | ML Service | http://localhost:8001 |
 | ML Service Docs | http://localhost:8001/docs |
 
@@ -623,6 +654,33 @@ POST /search
     "query_time_ms": 142.3,
     "retrieval_count": 20
   }
+```
+
+### Settings
+
+```http
+# Get preferences (returns defaults if not yet saved)
+GET /settings
+
+# Full replace
+PUT /settings
+{ "theme": "light", "accentColor": "#0EA5E9", "fontSize": "lg", "emailDigest": true, "weeklySummary": false }
+
+# Partial update (only listed fields change)
+PATCH /settings
+{ "theme": "dark", "fontSize": "sm" }
+
+# Reset to factory defaults
+DELETE /settings
+
+# Change password
+PUT /settings/account/password
+{ "currentPassword": "old-password", "newPassword": "new-secure-password" }
+
+# ⚠️ Delete account (irreversible — requires password confirmation)
+DELETE /settings/account
+{ "password": "current-password" }
+→ 204 No Content  (clear JWT from client storage after this)
 ```
 
 ---

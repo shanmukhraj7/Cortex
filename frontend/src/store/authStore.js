@@ -14,11 +14,16 @@ const useAuthStore = create(
                 set({ isLoading: true })
                 try {
                     const { data } = await apiClient.post('/auth/login', { email, password })
+                    // Auth service returns { access_token, token_type }
+                    // email comes from our own request payload (not in response body)
                     set({ token: data.access_token, user: { email }, isAuthenticated: true, isLoading: false })
                     return { success: true }
                 } catch (err) {
                     set({ isLoading: false })
-                    const msg = err.response?.data?.detail || 'Invalid email or password.'
+                    // Auth service errors use 'detail'; Spring Security 401s use 'message'
+                    const msg = err.response?.data?.detail
+                        || err.response?.data?.message
+                        || 'Invalid email or password.'
                     return { success: false, error: msg }
                 }
             },
@@ -31,12 +36,17 @@ const useAuthStore = create(
                     return { success: true }
                 } catch (err) {
                     set({ isLoading: false })
-                    const msg = err.response?.data?.detail || 'Registration failed.'
+                    const msg = err.response?.data?.detail
+                        || err.response?.data?.message
+                        || 'Registration failed.'
                     return { success: false, error: msg }
                 }
             },
 
-            logout: () => set({ user: null, token: null, isAuthenticated: false }),
+            logout: () => {
+                // Clears persisted auth state — also called after account deletion
+                set({ user: null, token: null, isAuthenticated: false })
+            },
         }),
         {
             name: 'cortex-auth',
